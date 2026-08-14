@@ -71,7 +71,12 @@ describe('DeepSee control settings', () => {
             previewUrl: 'http://127.0.0.1:4173',
             viewport: '1920x1080',
         });
-        expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+        // Windows does not expose POSIX permission bits through stat; it reads
+        // regular files back as 0o666 even when the write was private. Keep the
+        // functional test cross-platform and verify 0o600 where the OS enforces it.
+        if (typeof process.getuid === 'function') {
+            expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+        }
         const publicAgain = await publicControlSettings(file);
         expect(JSON.stringify(publicAgain)).not.toContain('AIza');
     });

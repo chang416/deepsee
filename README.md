@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/banner.png" width="100%" alt="DeepSee — vision and model routing for DeepSeek" />
+  <img src="assets/banner.png" width="100%" alt="DeepSee — vision and model routing for DeepSeek Harness" />
 </p>
 
 <h1 align="center">DeepSee</h1>
 
-<p align="center"><b>Give DeepSeek vision and smart model routing.</b></p>
+<p align="center"><b>Vision and smart model routing for DeepSeek Harness.</b></p>
 
 <p align="center">
   <a href="./README.zh-CN.md">简体中文</a> ·
