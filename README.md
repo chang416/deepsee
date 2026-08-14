@@ -29,6 +29,14 @@ npx -y @deepseek-ai/dsh plugin --profile web add @chang416/deepsee@latest
 
 Open **DeepSee Settings** to add free Gemini keys (one per line), choose a default preview URL, and customize which work belongs to Flash or Pro.
 
+<p align="center">
+  <a href="https://github.com/chang416/deepsee/blob/main/assets/deepsee-30s-promo.mp4">
+    <img src="https://raw.githubusercontent.com/chang416/deepsee/main/assets/deepsee-30s-promo-poster.jpg" width="100%" alt="Watch the 30-second DeepSee product film" />
+  </a>
+</p>
+
+<p align="center"><sub><a href="https://github.com/chang416/deepsee/blob/main/assets/deepsee-30s-promo.mp4">Watch the 30-second product film</a></sub></p>
+
 ![How DeepSee combines Gemini vision with DeepSeek model routing](https://raw.githubusercontent.com/chang416/deepsee/main/assets/flow.en.svg)
 
 ## Highlights
