@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" width="100%" alt="DeepSee — vision and model routing for DeepSeek Harness" />
+  <img src="https://raw.githubusercontent.com/chang416/deepsee/main/assets/banner.png" width="100%" alt="DeepSee — vision and model routing for DeepSeek Harness" />
 </p>
 
 <h1 align="center">DeepSee</h1>
@@ -29,7 +29,7 @@ npx -y @deepseek-ai/dsh plugin --profile web add @chang416/deepsee@latest
 
 Open **DeepSee Settings** to add free Gemini keys (one per line), choose a default preview URL, and customize which work belongs to Flash or Pro.
 
-![How DeepSee combines Gemini vision with DeepSeek model routing](assets/flow.en.svg)
+![How DeepSee combines Gemini vision with DeepSeek model routing](https://raw.githubusercontent.com/chang416/deepsee/main/assets/flow.en.svg)
 
 ## Highlights
 
@@ -119,9 +119,9 @@ Two knobs: `deepsee config set provider <name>` states a preference (the chain s
 
 ## The product in one frame
 
-![DeepSee brand and product system: vision plus model routing](assets/brand-system.png)
+![DeepSee brand and product system: vision plus model routing](https://raw.githubusercontent.com/chang416/deepsee/main/assets/brand-system.png)
 
-The launch demo follows one complete task: paste a UI reference, let Auto route implementation and review across Flash and Pro, watch Gemini inspect the rendered result, then deliver only after the final visual check passes. Every frame shown in the demo comes from a real DeepSee run.
+The workflow is deliberately explicit: paste a UI reference, let Auto route implementation and review across Flash and Pro, have Gemini inspect the rendered result, then deliver only after the final visual check passes.
 
 ## Documentation
 

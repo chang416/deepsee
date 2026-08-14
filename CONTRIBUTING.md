@@ -1,24 +1,23 @@
 # Contributing to DeepSee
 
-First, the policy: **DeepSee does not accept pull requests.** It is a
-deliberately small tool with a single maintainer who reviews and owns every
-line, and keeping that loop tight is what keeps it dependable.
+DeepSee welcomes focused pull requests. Keep the change small, explain its
+user-visible behavior, include appropriate tests, and do not combine an
+unrelated refactor or reformat with a feature or bug fix.
 
-Two contributions that genuinely help:
+Contributions that genuinely help:
 
-- **[Open an issue](https://github.com/<owner>/deepsee/issues).** Bugs, ideas,
+- **[Open an issue](https://github.com/chang416/deepsee/issues).** Bugs, ideas,
   a confusing error message, docs that read wrong. Issues get read and drive
   what gets built. The templates tell you what to include.
+- **Open a focused PR.** Start with an issue for a substantial behavior change;
+  link it in the PR and include the tests and docs that make it reviewable.
 - **Fork it.** The MIT license means your copy is fully yours: rename it,
   rewire it, publish it. No permission needed.
 
-Everything below is for people working on a fork.
-
 ## Scope
 
-DeepSee does one thing: turn an image into structured JSON evidence for
-text-only models. Web search and page fetching live in a sibling project
-(ModSearch), not here.
+DeepSee gives DeepSeek Harness visual evidence, Flash/Pro routing, and a
+visual re-check loop. Keep contributions narrowly aligned with that purpose.
 
 ## Setup
 
