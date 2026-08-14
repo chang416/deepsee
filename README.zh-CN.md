@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" width="100%" alt="DeepSee：为 DeepSeek 提供视觉与模型路由" />
+  <img src="https://raw.githubusercontent.com/chang416/deepsee/main/assets/banner.png" width="100%" alt="DeepSee：为 DeepSeek 提供视觉与模型路由" />
 </p>
 
 <h1 align="center">DeepSee</h1>
@@ -29,7 +29,7 @@ npx -y @deepseek-ai/dsh plugin --profile web add @chang416/deepsee@latest
 
 打开 **DeepSee Settings**，一行一把加入免费的 Gemini Key，并设置 Flash／Pro 分工、预览网址与视觉检查次数。
 
-![DeepSee 如何结合 Gemini 视觉与 DeepSeek 模型路由](assets/flow.zh.svg)
+![DeepSee 如何结合 Gemini 视觉与 DeepSeek 模型路由](https://raw.githubusercontent.com/chang416/deepsee/main/assets/flow.zh.svg)
 
 ## 亮点
 
@@ -131,9 +131,9 @@ deepsee config set openai.model   qwen3-vl-plus
 
 ## 一张图看懂产品
 
-![DeepSee 品牌与产品系统：视觉加模型路由](assets/brand-system.png)
+![DeepSee 品牌与产品系统：视觉加模型路由](https://raw.githubusercontent.com/chang416/deepsee/main/assets/brand-system.png)
 
-正式宣传片会展示一个完整真实任务：贴入 UI 参考图，Auto 把实现与审查分给 Flash／Pro，Gemini 检查实际渲染结果，最终视觉检查通过后才交付。影片中的每一帧都来自真实 DeepSee 运行，不用虚构界面冒充产品。
+工作流刻意保持清楚：贴入 UI 参考图，Auto 把实现与审查分给 Flash／Pro，Gemini 检查实际渲染结果，最终视觉检查通过后才交付。
 
 ## 文档
 
