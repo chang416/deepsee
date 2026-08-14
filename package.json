@@ -9,7 +9,7 @@
     },
     "scripts": {
         "dev": "vite build --watch",
-        "build": "vite build",
+        "build": "vite build && node scripts/ensure-bin-executable.mjs",
         "typecheck": "tsc --noEmit",
         "test": "vitest run",
         "coverage": "vitest run --coverage",
