@@ -30,6 +30,10 @@ npx -y @deepseek-ai/dsh plugin --profile web add @chang416/deepsee@latest
 Open **DeepSee Settings** to add free Gemini keys (one per line), choose a default preview URL, and customize which work belongs to Flash or Pro.
 
 <p align="center">
+  <img src="https://raw.githubusercontent.com/chang416/deepsee/main/assets/deepsee-workflow.gif" width="100%" alt="DeepSee routes a task, reads the rendered UI, and visually checks the result" />
+</p>
+
+<p align="center">
   <a href="https://github.com/chang416/deepsee/blob/main/assets/deepsee-30s-promo.mp4">
     <img src="https://raw.githubusercontent.com/chang416/deepsee/main/assets/deepsee-30s-promo-poster.jpg" width="100%" alt="Watch the 30-second DeepSee product film" />
   </a>
