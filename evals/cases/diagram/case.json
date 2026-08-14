@@ -1,0 +1,23 @@
+{
+    "id": "diagram",
+    "title": "DeepSee vision and routing flow diagram",
+    "category": "diagram",
+    "image": "evals/fixtures/flow.png",
+    "provider": null,
+    "model": null,
+    "prompt": null,
+    "expect": {
+        "mustTranscribe": [
+            "IMAGE",
+            "GEMINI VISION",
+            "DEEPSEEK CODE",
+            "FLASH",
+            "PRO",
+            "AUTO",
+            "CUSTOMIZE"
+        ],
+        "numbers": [],
+        "regionTypes": [],
+        "notes": "A clean product flow. The visual input, Gemini vision role, DeepSeek coding role, and all four routing choices must be transcribed."
+    }
+}

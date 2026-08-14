@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 720" role="img" aria-labelledby="title desc">
+  <title id="title">How DeepSee combines vision and model routing</title>
+  <desc id="desc">An image is read by Gemini Vision, converted into evidence, used by DeepSeek Code, and routed through Flash, Pro, Auto, or Customize.</desc>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#62B8FF"/><stop offset="1" stop-color="#72E6FF"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1800" height="720" rx="42" fill="#07090D"/>
+  <path d="M0 92h1800M0 180h1800M0 268h1800M0 356h1800M0 444h1800M0 532h1800M0 620h1800M144 0v720M288 0v720M432 0v720M576 0v720M720 0v720M864 0v720M1008 0v720M1152 0v720M1296 0v720M1440 0v720M1584 0v720" stroke="#172337" stroke-width="1" opacity=".45"/>
+  <g font-family="Inter,Arial,sans-serif">
+    <text x="90" y="92" fill="#F3F7FB" font-size="42" font-weight="700">ONE WORKSPACE. TWO POWERS.</text>
+    <text x="90" y="132" fill="#8EA1B8" font-size="22">Gemini supplies vision. DeepSeek writes and routes the code.</text>
+  </g>
+  <g transform="translate(80 230)">
+    <rect width="260" height="260" rx="28" fill="#111620" stroke="#2D496B" stroke-width="3"/>
+    <rect x="44" y="54" width="172" height="136" rx="16" fill="#0C223A" stroke="#62B8FF" stroke-width="3"/>
+    <circle cx="82" cy="92" r="15" fill="#72E6FF"/>
+    <path d="m62 169 42-45 32 31 27-24 36 38Z" fill="url(#blue)"/>
+    <text x="130" y="230" fill="#F3F7FB" font-family="Inter,Arial,sans-serif" font-size="24" text-anchor="middle" font-weight="700">IMAGE</text>
+  </g>
+  <path d="M350 360h90" stroke="#62B8FF" stroke-width="8" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="m425 344 22 16-22 16" fill="none" stroke="#62B8FF" stroke-width="8"/>
+  <g transform="translate(460 230)">
+    <rect width="300" height="260" rx="28" fill="#111620" stroke="#62B8FF" stroke-width="3"/>
+    <path d="M75 130c34-49 78-49 112 0-34 49-78 49-112 0Z" fill="url(#blue)"/>
+    <circle cx="131" cy="130" r="21" fill="#07090D"/>
+    <text x="150" y="210" fill="#F3F7FB" font-family="Inter,Arial,sans-serif" font-size="24" text-anchor="middle" font-weight="700">GEMINI VISION</text>
+    <text x="150" y="239" fill="#8EA1B8" font-family="ui-monospace,monospace" font-size="16" text-anchor="middle">structured evidence</text>
+  </g>
+  <path d="M770 360h90" stroke="#72E6FF" stroke-width="8" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="m845 344 22 16-22 16" fill="none" stroke="#72E6FF" stroke-width="8"/>
+  <g transform="translate(880 230)">
+    <rect width="300" height="260" rx="28" fill="#111620" stroke="#72E6FF" stroke-width="3"/>
+    <path d="M70 90h160M70 122h98M70 154h130M70 186h76" stroke="url(#blue)" stroke-width="12" stroke-linecap="round"/>
+    <text x="150" y="230" fill="#F3F7FB" font-family="Inter,Arial,sans-serif" font-size="24" text-anchor="middle" font-weight="700">DEEPSEEK CODE</text>
+  </g>
+  <path d="M1190 360h88M1278 360c52 0 38-156 110-156M1278 360c52 0 38-52 110-52M1278 360c52 0 38 52 110 52M1278 360c52 0 38 156 110 156" fill="none" stroke="#72E6FF" stroke-width="7" stroke-linecap="round"/>
+  <g font-family="ui-monospace,monospace" font-size="22" font-weight="700">
+    <g transform="translate(1390 160)"><rect width="320" height="88" rx="44" fill="#0B1B31" stroke="#62B8FF" stroke-width="3"/><text x="160" y="56" fill="#F3F7FB" text-anchor="middle">FLASH</text></g>
+    <g transform="translate(1390 264)"><rect width="320" height="88" rx="44" fill="#0B2530" stroke="#72E6FF" stroke-width="3"/><text x="160" y="56" fill="#F3F7FB" text-anchor="middle">PRO</text></g>
+    <g transform="translate(1390 368)"><rect width="320" height="88" rx="44" fill="#0B2530" stroke="#72E6FF" stroke-width="3"/><text x="160" y="56" fill="#F3F7FB" text-anchor="middle">AUTO</text></g>
+    <g transform="translate(1390 472)"><rect width="320" height="88" rx="44" fill="#172514" stroke="#A8FF60" stroke-width="3"/><text x="160" y="56" fill="#A8FF60" text-anchor="middle">CUSTOMIZE</text></g>
+  </g>
+  <text x="90" y="650" fill="#62B8FF" font-family="ui-monospace,monospace" font-size="19">DeepSee · Vision + Model Routing for DeepSeek Harness · by chang416</text>
+</svg>

@@ -1,0 +1,24 @@
+{
+    "id": "dense-text",
+    "title": "Dense DeepSee settings and task-route UI",
+    "category": "dense-text, developer-ui",
+    "image": "evals/fixtures/dense-ui.png",
+    "provider": null,
+    "model": null,
+    "prompt": null,
+    "expect": {
+        "mustTranscribe": [
+            "DeepSee Settings",
+            "DeepSee Auto",
+            "Gemini Flash Latest",
+            "DeepSeek writes code",
+            "FLASH",
+            "PRO",
+            "VISUAL CHECK",
+            "1440"
+        ],
+        "numbers": [],
+        "regionTypes": [],
+        "notes": "A dense developer-tool UI. Settings, route roles, status, and the final visual-verification verdict must be transcribed."
+    }
+}

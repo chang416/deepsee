@@ -1,0 +1,15 @@
+{
+    "id": "banner",
+    "title": "DeepSee product banner",
+    "category": "branding",
+    "image": "assets/banner.png",
+    "provider": null,
+    "model": null,
+    "prompt": null,
+    "expect": {
+        "mustTranscribe": ["DEEPSEE", "VISION + MODEL ROUTING", "GEMINI VISION", "DEEPSEEK CODE"],
+        "numbers": [],
+        "regionTypes": [],
+        "notes": "A product-brand baseline: the wordmark, positioning, and two halves of the core workflow must be transcribed."
+    }
+}

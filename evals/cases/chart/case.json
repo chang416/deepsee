@@ -1,0 +1,20 @@
+{
+    "id": "chart",
+    "title": "Vision routing quality-vs-cost scatter plot",
+    "category": "chart",
+    "image": "evals/fixtures/chart.png",
+    "provider": null,
+    "model": null,
+    "prompt": null,
+    "expect": {
+        "mustTranscribe": [
+            "Vision Routing Quality vs Cost",
+            "Visual accuracy",
+            "DeepSee Auto",
+            "128"
+        ],
+        "numbers": [],
+        "regionTypes": ["chart"],
+        "notes": "A dense product benchmark. The title, axis, task count, and a routed DeepSee series must be transcribed, and the layout should mark a chart region."
+    }
+}
