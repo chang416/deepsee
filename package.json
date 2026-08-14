@@ -62,7 +62,7 @@
         "node": ">=22.19"
     },
     "dependencies": {
-        "commander": "^13.1.0",
+        "commander": "^15.0.0",
         "undici": "^8.10.0"
     },
     "devDependencies": {
