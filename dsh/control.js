@@ -1,0 +1,190 @@
+// Shared control plane for the DeepSee dsh plugin. This file deliberately uses
+// only Node built-ins so the published plugin remains a zero-dependency Cordis
+// bundle.
+import { createHash, randomBytes } from 'node:crypto'
+import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+
+export const AUTO_MODEL_ID = 'deepsee-auto'
+export const CUSTOMIZE_MODEL_ID = 'deepsee-customize'
+
+export const TASK_CATEGORIES = [
+  'discovery',
+  'documentation',
+  'tests',
+  'small-edit',
+  'bug-fix',
+  'ui-implementation',
+  'visual-review',
+  'refactor',
+  'architecture',
+  'security',
+  'integration',
+  'review',
+]
+
+// The free-first preset: Flash handles bounded, low-risk execution; Pro owns
+// decisions whose blast radius or ambiguity benefits from deeper reasoning.
+export const AUTO_ASSIGNMENTS = Object.freeze({
+  discovery: 'flash',
+  documentation: 'flash',
+  tests: 'flash',
+  'small-edit': 'flash',
+  'bug-fix': 'flash',
+  'ui-implementation': 'flash',
+  'visual-review': 'pro',
+  refactor: 'pro',
+  architecture: 'pro',
+  security: 'pro',
+  integration: 'pro',
+  review: 'pro',
+})
+
+export function configPath() {
+  return process.env.DEEPSEE_CONFIG_PATH || join(homedir(), '.deepsee', 'config.json')
+}
+
+function cleanKeys(value) {
+  const raw = Array.isArray(value) ? value : typeof value === 'string' ? value.split(/[\n,]/) : []
+  return [...new Set(raw.map((key) => String(key).trim()).filter(Boolean))]
+}
+
+function lane(value, fallback) {
+  return value === 'flash' || value === 'pro' ? value : fallback
+}
+
+export function normalizeControlSettings(raw = {}) {
+  const route = raw?.routing?.customize ?? {}
+  const visual = raw?.routing?.visualCheck ?? {}
+  const custom = {}
+  for (const category of TASK_CATEGORIES) {
+    custom[category] = lane(route.assignments?.[category], AUTO_ASSIGNMENTS[category])
+  }
+  const keys = cleanKeys(raw?.providers?.['gemini-api']?.apiKeys)
+  const legacyKey = String(raw?.providers?.['gemini-api']?.apiKey ?? '').trim()
+  if (legacyKey && !keys.includes(legacyKey)) keys.unshift(legacyKey)
+  const maxParallel = Number.isSafeInteger(route.maxParallel) ? Math.min(6, Math.max(1, route.maxParallel)) : 3
+  return {
+    keyCount: keys.length,
+    customizeConfigured: route.configured === true,
+    assignments: custom,
+    maxParallel,
+    flashModel: String(raw?.routing?.models?.flash ?? 'deepseek-v4-flash'),
+    proModel: String(raw?.routing?.models?.pro ?? 'deepseek-v4-pro'),
+    visualCheck: {
+      enabled: visual.enabled !== false,
+      milestones: visual.milestones !== false,
+      final: visual.final !== false,
+      maxRounds: Number.isSafeInteger(visual.maxRounds) ? Math.min(4, Math.max(1, visual.maxRounds)) : 2,
+      previewUrl: typeof visual.previewUrl === 'string' ? visual.previewUrl.trim() : '',
+      viewport: typeof visual.viewport === 'string' && visual.viewport.trim() ? visual.viewport.trim() : '1440x900',
+    },
+  }
+}
+
+export async function readControlFile(path = configPath()) {
+  try {
+    const raw = JSON.parse(await readFile(path, 'utf8'))
+    return raw && typeof raw === 'object' ? raw : {}
+  } catch (error) {
+    if (error?.code === 'ENOENT') return {}
+    throw new Error(`Cannot read DeepSee settings: ${error?.message ?? error}`)
+  }
+}
+
+async function atomicWriteJson(path, value) {
+  await mkdir(dirname(path), { recursive: true })
+  const temporary = `${path}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`
+  try {
+    await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600, flag: 'wx' })
+    await rename(temporary, path)
+  } catch (error) {
+    await unlink(temporary).catch(() => {})
+    throw error
+  }
+}
+
+export async function updateControlFile(update, path = configPath()) {
+  const raw = await readControlFile(path)
+  if (Object.hasOwn(update, 'keysText')) {
+    raw.providers ??= {}
+    raw.providers['gemini-api'] ??= {}
+    const keys = cleanKeys(update.keysText)
+    if (keys.length === 0) {
+      delete raw.providers['gemini-api'].apiKeys
+      delete raw.providers['gemini-api'].apiKey
+    } else {
+      raw.providers['gemini-api'].apiKeys = keys
+      // Avoid keeping a stale legacy key at a higher precedence.
+      delete raw.providers['gemini-api'].apiKey
+    }
+  }
+  raw.routing ??= {}
+  raw.routing.customize ??= {}
+  if (update.assignments !== undefined) {
+    const assignments = {}
+    for (const category of TASK_CATEGORIES) {
+      assignments[category] = lane(update.assignments?.[category], AUTO_ASSIGNMENTS[category])
+    }
+    raw.routing.customize.assignments = assignments
+    raw.routing.customize.configured = true
+  }
+  if (update.maxParallel !== undefined) {
+    if (!Number.isSafeInteger(update.maxParallel) || update.maxParallel < 1 || update.maxParallel > 6) {
+      throw new Error('maxParallel must be an integer from 1 to 6')
+    }
+    raw.routing.customize.maxParallel = update.maxParallel
+  }
+  if (update.visualCheck !== undefined) {
+    if (!update.visualCheck || typeof update.visualCheck !== 'object' || Array.isArray(update.visualCheck)) {
+      throw new Error('visualCheck must be an object')
+    }
+    const previous = raw.routing.visualCheck ?? {}
+    const next = { ...previous }
+    for (const field of ['enabled', 'milestones', 'final']) {
+      if (Object.hasOwn(update.visualCheck, field)) {
+        if (typeof update.visualCheck[field] !== 'boolean') throw new Error(`visualCheck.${field} must be boolean`)
+        next[field] = update.visualCheck[field]
+      }
+    }
+    if (Object.hasOwn(update.visualCheck, 'maxRounds')) {
+      if (
+        !Number.isSafeInteger(update.visualCheck.maxRounds) ||
+        update.visualCheck.maxRounds < 1 ||
+        update.visualCheck.maxRounds > 4
+      ) {
+        throw new Error('visualCheck.maxRounds must be an integer from 1 to 4')
+      }
+      next.maxRounds = update.visualCheck.maxRounds
+    }
+    for (const field of ['previewUrl', 'viewport']) {
+      if (Object.hasOwn(update.visualCheck, field)) {
+        if (typeof update.visualCheck[field] !== 'string') throw new Error(`visualCheck.${field} must be a string`)
+        next[field] = update.visualCheck[field].trim()
+      }
+    }
+    raw.routing.visualCheck = next
+  }
+  await atomicWriteJson(path, raw)
+  return normalizeControlSettings(raw)
+}
+
+export async function publicControlSettings(path = configPath()) {
+  return normalizeControlSettings(await readControlFile(path))
+}
+
+export function chooseLane(task, category, mode, settings) {
+  if (mode === 'customize') {
+    return settings.assignments[category] ?? AUTO_ASSIGNMENTS[category] ?? 'pro'
+  }
+  if (TASK_CATEGORIES.includes(category)) return AUTO_ASSIGNMENTS[category]
+  const text = String(task ?? '').toLowerCase()
+  if (/security|auth|permission|migration|architecture|跨模組|架構|安全|權限|遷移/.test(text)) return 'pro'
+  if (/refactor|integration|review|重構|整合|審查/.test(text)) return 'pro'
+  return 'flash'
+}
+
+export function keyFingerprint(key) {
+  return createHash('sha256').update(String(key)).digest('hex').slice(0, 8)
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <rect width="1600" height="1000" fill="#050914"/>
+  <rect x="64" y="56" width="1472" height="888" rx="28" fill="#0b1220" stroke="#24324a" stroke-width="2"/>
+  <text x="112" y="132" fill="#f4f8ff" font-family="Arial, sans-serif" font-size="42" font-weight="700">Vision Routing Quality vs Cost</text>
+  <text x="112" y="174" fill="#87a1c3" font-family="Arial, sans-serif" font-size="22">DeepSee benchmark · 128 visual coding tasks</text>
+  <line x1="180" y1="820" x2="1450" y2="820" stroke="#60708a" stroke-width="3"/>
+  <line x1="180" y1="820" x2="180" y2="238" stroke="#60708a" stroke-width="3"/>
+  <text x="690" y="900" fill="#c9d6ea" font-family="Arial, sans-serif" font-size="28">Cost per task (USD)</text>
+  <text x="68" y="600" fill="#c9d6ea" font-family="Arial, sans-serif" font-size="28" transform="rotate(-90 68 600)">Visual accuracy (%)</text>
+  <g fill="#6e83a0" font-family="Arial, sans-serif" font-size="20">
+    <text x="154" y="826" text-anchor="end">60</text><text x="154" y="680" text-anchor="end">70</text><text x="154" y="534" text-anchor="end">80</text><text x="154" y="388" text-anchor="end">90</text><text x="154" y="246" text-anchor="end">100</text>
+    <text x="180" y="858" text-anchor="middle">$0</text><text x="500" y="858" text-anchor="middle">$0.01</text><text x="820" y="858" text-anchor="middle">$0.02</text><text x="1140" y="858" text-anchor="middle">$0.03</text><text x="1450" y="858" text-anchor="middle">$0.04</text>
+  </g>
+  <g stroke="#1c2b41" stroke-width="2"><line x1="180" y1="680" x2="1450" y2="680"/><line x1="180" y1="534" x2="1450" y2="534"/><line x1="180" y1="388" x2="1450" y2="388"/><line x1="500" y1="238" x2="500" y2="820"/><line x1="820" y1="238" x2="820" y2="820"/><line x1="1140" y1="238" x2="1140" y2="820"/></g>
+  <g fill="#4ba4ff" opacity=".9"><circle cx="370" cy="620" r="14"/><circle cx="560" cy="545" r="14"/><circle cx="880" cy="470" r="14"/><circle cx="1190" cy="398" r="14"/></g>
+  <g fill="#29e8c5"><circle cx="310" cy="430" r="18"/><circle cx="460" cy="350" r="18"/><circle cx="670" cy="305" r="18"/></g>
+  <g fill="#b8ff4b"><circle cx="420" cy="300" r="23"/><circle cx="720" cy="264" r="23"/></g>
+  <text x="455" y="286" fill="#b8ff4b" font-family="Arial, sans-serif" font-size="26" font-weight="700">DeepSee Auto</text>
+  <text x="752" y="250" fill="#b8ff4b" font-family="Arial, sans-serif" font-size="26" font-weight="700">DeepSee Customize</text>
+  <g font-family="Arial, sans-serif" font-size="22"><circle cx="1130" cy="118" r="9" fill="#4ba4ff"/><text x="1150" y="126" fill="#b9c8dc">Single model</text><circle cx="1130" cy="158" r="9" fill="#29e8c5"/><text x="1150" y="166" fill="#b9c8dc">Routed</text><circle cx="1320" cy="118" r="9" fill="#b8ff4b"/><text x="1340" y="126" fill="#b9c8dc">DeepSee</text></g>
+</svg>

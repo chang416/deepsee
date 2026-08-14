@@ -7,7 +7,7 @@ import { discoverAuto, isVisionModel } from './discover.ts';
 // A PATH pointing at a directory holding fake executables, same pattern as
 // doctor.test.ts: binary detection must not depend on the test machine.
 function pathWith(bins: string[]): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-auto-bin-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-auto-bin-'));
     for (const bin of bins) {
         fs.writeFileSync(path.join(dir, bin), '#!/bin/sh\n', { mode: 0o755 });
     }
@@ -15,7 +15,7 @@ function pathWith(bins: string[]): string {
 }
 
 function fakeHome(): string {
-    return fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-auto-home-'));
+    return fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-auto-home-'));
 }
 
 function probeOf(result: ReturnType<typeof discoverAuto>, harness: string) {
@@ -210,7 +210,7 @@ describe('discoverAuto cache', () => {
 
     it('rejects a cache whose timestamp does not parse instead of keeping it forever', () => {
         const home = fakeHome();
-        const cachePath = path.join(home, '.modlens', 'auto-cache.json');
+        const cachePath = path.join(home, '.deepsee', 'auto-cache.json');
         fs.mkdirSync(path.dirname(cachePath), { recursive: true });
         fs.writeFileSync(cachePath, JSON.stringify({ cachedAt: 'not-a-date', probes: [] }));
         const result = discoverAuto({ env: { PATH: '' }, home });

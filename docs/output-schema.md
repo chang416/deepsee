@@ -1,11 +1,11 @@
 ---
 summary: 'Output contract: the JSON shape every read returns, result fields and meta'
 read_when:
-  - Parsing modlens output or building on top of it
+  - Parsing deepsee output or building on top of it
   - Checking what meta.attempts and meta.warnings mean
 ---
 
-# ModLens Output Schema (v2)
+# DeepSee Output Schema (v2)
 
 English | [中文](output-schema.zh-CN.md)
 

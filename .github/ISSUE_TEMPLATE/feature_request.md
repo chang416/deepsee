@@ -8,15 +8,15 @@ assignees: ''
 
 ## The problem
 
-What are you trying to do that modlens makes hard or impossible today?
+What are you trying to do that DeepSee makes hard or impossible today?
 
 ## Proposed change
 
 What you would like it to do.
 
-## Scope check
+## DeepSee fit
 
-ModLens turns an image into structured JSON evidence for text-only models, and nothing else. Web search and page fetching live in [ModSearch](https://github.com/liustack/modsearch). Does this request fit that mandate? If it widens it, say why it belongs here.
+DeepSee focuses on DeepSeek Harness integration, visual evidence, local visual testing, and bounded multi-model routing. Explain how this proposal supports one of those goals and identify any security or privacy implications.
 
 ## Alternatives
 
@@ -24,4 +24,4 @@ Anything you have tried or considered (a different provider, a flag, a workaroun
 
 ---
 
-Not sure it is a bug, or just want to talk it through? Find me on X: [@liustack](https://x.com/liustack).
+If this is exploratory rather than a concrete feature request, start a [Discussion](https://github.com/chang416/deepsee/discussions) first.

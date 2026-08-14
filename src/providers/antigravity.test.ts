@@ -124,7 +124,7 @@ describe('describeAntigravityFailure', () => {
     beforeEach(() => {
         // Isolate from this machine's real agy logs. os.homedir() reads HOME on
         // POSIX and USERPROFILE on Windows, so point both at the fake home.
-        fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-agy-'));
+        fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-agy-'));
         process.env.HOME = fakeHome;
         process.env.USERPROFILE = fakeHome;
     });
@@ -169,7 +169,7 @@ describe('describeAntigravityFailure', () => {
         });
         expect(message).toContain('cannot read its stored login token');
         expect(message).toContain('keyring is locked');
-        expect(message).toContain('modlens config set provider gemini-api');
+        expect(message).toContain('deepsee config set provider gemini-api');
     });
 
     it('explains an exhausted quota and keeps agy own wording', () => {
@@ -180,7 +180,7 @@ describe('describeAntigravityFailure', () => {
         });
         expect(message).toContain('Resets in 94h19m9s');
         expect(message).toContain('weekly bucket');
-        expect(message).toContain('modlens config set provider gemini-api');
+        expect(message).toContain('deepsee config set provider gemini-api');
     });
 
     it('falls back to a generic did-no-work message with the log path', () => {
@@ -232,7 +232,7 @@ describe('log evidence is scoped to this run', () => {
             const two = (n: number) => String(n).padStart(2, '0');
             return `I${two(at.getMonth() + 1)}${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}:${two(at.getSeconds())}.000000       1 x.go:1] Individual quota reached.`;
         };
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-scope-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-scope-'));
         const dir = path.join(home, '.gemini', 'antigravity-cli', 'log');
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(path.join(dir, 'cli.log'), stamp(old));

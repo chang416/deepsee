@@ -23,7 +23,7 @@ export async function executeAnthropicApi(
     const apiKey = options.settings?.apiKey;
     if (!apiKey) {
         throw new Error(
-            'anthropic provider needs an API key. Set ANTHROPIC_API_KEY, or run: modlens config set anthropic.apiKey <key>',
+            'anthropic provider needs an API key. Set ANTHROPIC_API_KEY, or run: deepsee config set anthropic.apiKey <key>',
         );
     }
 

@@ -65,10 +65,10 @@ const ADAPTERS: HarnessAdapter[] = [claudeAdapter, piAdapter, opencodeAdapter];
  * Pasted screenshots can hold anything, so the bytes must never be readable by
  * another local user. The default is a fresh per-call `mkdtemp` directory:
  * `mkdirSync -p` does not apply its mode to a directory that already exists, so
- * a fixed `tmpdir()/modlens-paste` let anyone on a shared box pre-create it
+ * a fixed `tmpdir()/deepsee-paste` let anyone on a shared box pre-create it
  * (0755, owned by them) and read every screenshot recovered into it. A unique
  * name nobody can predict closes that. We deliberately do not clean it up: the
- * recovered files are the product (downstream reads them via `modlens -i`), and
+ * recovered files are the product (downstream reads them via `deepsee -i`), and
  * the system's own tmp reaper collects them later.
  *
  * An explicit `--out-dir` is the user's choice, so honour it, but still refuse
@@ -78,7 +78,7 @@ const ADAPTERS: HarnessAdapter[] = [claudeAdapter, piAdapter, opencodeAdapter];
 function prepareOutDir(explicit?: string): string {
     if (!explicit) {
         // mkdtemp creates the directory 0700 and owned by us in one step.
-        return fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-paste-'));
+        return fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-paste-'));
     }
 
     const outDir = path.resolve(explicit);
@@ -109,7 +109,7 @@ function prepareOutDir(explicit?: string): string {
     // mode 0o777, so the ownership and group/world checks would reject every
     // existing --out-dir. Skip them there and rely on the symlink and
     // is-a-directory guards above; access control on Windows is ACL-based, outside
-    // what modlens can assert from a stat.
+    // what deepsee can assert from a stat.
     const uid = typeof process.getuid === 'function' ? process.getuid() : undefined;
     if (uid !== undefined) {
         if (stat.uid !== uid) {

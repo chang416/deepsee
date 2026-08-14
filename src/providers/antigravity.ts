@@ -101,8 +101,8 @@ function parseEnvelope(stdout: string): AgyPrintEnvelope {
 }
 
 const SWITCH_HINT = `Or switch to a provider with its own quota and no interactive login:
-  modlens config set gemini-api.apiKey <key>   # free key, no card: https://aistudio.google.com
-  modlens config set provider gemini-api`;
+  deepsee config set gemini-api.apiKey <key>   # free key, no card: https://aistudio.google.com
+  deepsee config set provider gemini-api`;
 
 /**
  * agy exits 1 for auth and quota problems alike, and its own envelope says
@@ -144,7 +144,7 @@ export function describeAntigravityFailure(context: ProviderFailureContext): str
     ) {
         return [
             'Antigravity CLI cannot read its stored login token.',
-            'On Linux this usually means the OS keyring is locked, which is normal for headless sessions (agents, cron, systemd, SSH without a desktop login). agy then reports it as being signed out and tries a browser sign-in that cannot complete without a display. Unlock the keyring, or run modlens from a desktop session, or sign in again with `agy`.',
+            'On Linux this usually means the OS keyring is locked, which is normal for headless sessions (agents, cron, systemd, SSH without a desktop login). agy then reports it as being signed out and tries a browser sign-in that cannot complete without a display. Unlock the keyring, or run deepsee from a desktop session, or sign in again with `agy`.',
             SWITCH_HINT,
         ].join('\n\n');
     }

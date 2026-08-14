@@ -7,14 +7,14 @@ import { detectActiveModel, runGuard } from './index.ts';
 
 // The suite itself runs inside a real harness; keep detection out of the way.
 beforeEach(() => {
-    process.env.MODLENS_HARNESS = 'none';
+    process.env.DEEPSEE_HARNESS = 'none';
 });
 afterEach(() => {
-    delete process.env.MODLENS_HARNESS;
+    delete process.env.DEEPSEE_HARNESS;
 });
 
 function tempDir(): string {
-    return fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-guard-'));
+    return fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-guard-'));
 }
 
 // The two storage-backed cases lean on claudeProjectSlug, which does not
@@ -36,15 +36,15 @@ function claudeFixture(cwd: string, model: string): { claudeProjectsDir: string 
 }
 
 describe('detectActiveModel', () => {
-    it('lets MODLENS_MODEL override everything, with "none" meaning explicitly unknown', () => {
+    it('lets DEEPSEE_MODEL override everything, with "none" meaning explicitly unknown', () => {
         const detection = detectActiveModel({
             cwd: '/repo',
-            env: { MODLENS_MODEL: 'gpt-5.6-sol', MODLENS_HARNESS: 'none' },
+            env: { DEEPSEE_MODEL: 'gpt-5.6-sol', DEEPSEE_HARNESS: 'none' },
             selfReported: 'claude-fable-5',
         });
         expect(detection).toMatchObject({ model: 'gpt-5.6-sol', source: 'env' });
         expect(
-            detectActiveModel({ cwd: '/repo', env: { MODLENS_MODEL: 'none' } }).model,
+            detectActiveModel({ cwd: '/repo', env: { DEEPSEE_MODEL: 'none' } }).model,
         ).toBeNull();
     });
 
@@ -55,7 +55,7 @@ describe('detectActiveModel', () => {
             const roots = claudeFixture(cwd, 'deepseek-v4-flash');
             const detection = detectActiveModel({
                 cwd,
-                env: { MODLENS_HARNESS: 'claude-code' },
+                env: { DEEPSEE_HARNESS: 'claude-code' },
                 selfReported: 'claude-3.7-sonnet',
                 roots,
             });
@@ -70,7 +70,7 @@ describe('detectActiveModel', () => {
 
     it('falls back to the self-report when storage yields nothing, then to unknown', () => {
         const roots = { claudeProjectsDir: path.join(tempDir(), 'missing') };
-        const env = { MODLENS_HARNESS: 'claude-code' };
+        const env = { DEEPSEE_HARNESS: 'claude-code' };
         expect(
             detectActiveModel({ cwd: '/repo', env, selfReported: 'deepseek-v4-flash', roots }),
         ).toMatchObject({ model: 'deepseek-v4-flash', source: 'self-report' });
@@ -81,13 +81,13 @@ describe('detectActiveModel', () => {
     });
 
     it.skipIf(onWindows)(
-        'treats a set-but-empty MODLENS_HARNESS as not forced, like detect.ts does',
+        'treats a set-but-empty DEEPSEE_HARNESS as not forced, like detect.ts does',
         () => {
             const cwd = tempDir();
             const roots = claudeFixture(cwd, 'deepseek-v4-flash');
             const detection = detectActiveModel({
                 cwd,
-                env: { MODLENS_HARNESS: '' },
+                env: { DEEPSEE_HARNESS: '' },
                 harness: 'claude-code',
                 roots,
             });
@@ -98,11 +98,11 @@ describe('detectActiveModel', () => {
 
 describe('runGuard', () => {
     it('skips model detection entirely when no rule could ever deny', () => {
-        // MODLENS_MODEL would be picked up if detection ran: its absence from
+        // DEEPSEE_MODEL would be picked up if detection ran: its absence from
         // the verdict is the proof the short-circuit fired.
         const verdict = runGuard(
             {},
-            { cwd: '/repo', env: { MODLENS_MODEL: 'gpt-5.6-sol', MODLENS_HARNESS: 'none' } },
+            { cwd: '/repo', env: { DEEPSEE_MODEL: 'gpt-5.6-sol', DEEPSEE_HARNESS: 'none' } },
         );
         expect(verdict).toMatchObject({
             guard: 'allow',
@@ -115,18 +115,18 @@ describe('runGuard', () => {
     it('still detects when denyWhenUnknown alone is set', () => {
         const verdict = runGuard(
             { denyWhenUnknown: true },
-            { cwd: '/repo', env: { MODLENS_HARNESS: 'none' } },
+            { cwd: '/repo', env: { DEEPSEE_HARNESS: 'none' } },
         );
         expect(verdict.guard).toBe('deny');
     });
 
     it('still detects when only allowModels is configured', () => {
         // An allowlist denies everything off the list, so the short-circuit
-        // must not swallow it: MODLENS_MODEL showing up in the verdict proves
+        // must not swallow it: DEEPSEE_MODEL showing up in the verdict proves
         // detection ran.
         const verdict = runGuard(
             { allowModels: ['deepseek-v4-*'] },
-            { cwd: '/repo', env: { MODLENS_MODEL: 'claude-fable-5', MODLENS_HARNESS: 'none' } },
+            { cwd: '/repo', env: { DEEPSEE_MODEL: 'claude-fable-5', DEEPSEE_HARNESS: 'none' } },
         );
         expect(verdict).toMatchObject({ guard: 'deny', model: 'claude-fable-5', source: 'env' });
     });

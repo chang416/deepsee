@@ -5,7 +5,7 @@ read_when:
   - 查某个参数、默认模型或子命令
 ---
 
-# ModLens CLI 手册
+# DeepSee CLI 手册
 
 [English](cli.md) | 中文
 
@@ -16,10 +16,10 @@ skill 通过它的启动器驱动这个 CLI。本页讲的是直接手动运行�
 装好 skill 后不需要敲命令：粘贴图片或给出路径，随便提问，它会自动触发。手动运行：
 
 ```bash
-modlens -i screenshot.png                       # local image
-modlens -i https://example.com/chart.png        # remote image
-modlens -i chart.png --prompt "focus on axes"   # extra focus
-modlens recover-paste                           # pull a pasted image into a file
+deepsee -i screenshot.png                       # local image
+deepsee -i https://example.com/chart.png        # remote image
+deepsee -i chart.png --prompt "focus on axes"   # extra focus
+deepsee recover-paste                           # pull a pasted image into a file
 ```
 
 输出是固定的 JSON 结构：
@@ -38,7 +38,7 @@ modlens recover-paste                           # pull a pasted image into a fil
   },
   "meta": {
     "generatedAt": "2026-08-06T12:00:00.000Z",
-    "model": "gemini-3.6-flash",
+    "model": "gemini-flash-latest",
     "conversationId": null,
     "durationSeconds": 6.4,
     "usage": { "promptTokenCount": 1234, "candidatesTokenCount": 567 },
@@ -52,7 +52,7 @@ modlens recover-paste                           # pull a pasted image into a fil
 
 ## 参数
 
-`modlens analyze`（默认命令）：
+`deepsee analyze`（默认命令）：
 
 | 参数 | 含义 | 默认值 |
 | :-- | :-- | :-- |
@@ -66,33 +66,33 @@ modlens recover-paste                           # pull a pasted image into a fil
 | `--workdir <path>` | provider 的工作目录 | 每次运行新建的隔离目录 |
 | `--extra-body <json>` | 合并进 API 请求体的 JSON，如 `'{"thinking":{"type":"disabled"}}'` | 配置里该 provider 的 `extraBody` |
 
-`--extra-body` 是厂商专属开关的通道，最常见的用途是关掉 thinking。它作用于三个 API provider，并在该次运行中替换配置里的 `extraBody`。各厂商的具体写法和它拒绝改动的字段见[配置手册](../skills/modlens/references/configure.zh-CN.md)。
+`--extra-body` 是厂商专属开关的通道，最常见的用途是关掉 thinking。它作用于三个 API provider，并在该次运行中替换配置里的 `extraBody`。各厂商的具体写法和它拒绝改动的字段见[配置手册](../skills/deepsee/references/configure.zh-CN.md)。
 
 `-m` 的默认模型取决于 provider：
 
 | Provider | 默认模型 |
 | :-- | :-- |
 | `antigravity-cli`（默认） | `gemini-3.6-flash-low` |
-| `gemini-api` | `gemini-3.6-flash` |
+| `gemini-api` | `gemini-flash-latest` |
 | `anthropic` | `claude-haiku-4-5-20251001` |
 | `claude-cli` | `haiku` |
 | `openai` | 无，必须传 `-m` |
 
-`modlens recover-paste`：
+`deepsee recover-paste`：
 
 | 参数 | 含义 | 默认值 |
 | :-- | :-- | :-- |
 | `--count <n>` | 恢复最近几张粘贴的图片 | `1` |
-| `--out-dir <path>` | 恢复出的图片写到哪里 | 每次运行新建的私有 `<tmpdir>/modlens-paste-*` |
+| `--out-dir <path>` | 恢复出的图片写到哪里 | 每次运行新建的私有 `<tmpdir>/deepsee-paste-*` |
 | `--session <id>` | 用会话 id 精确定位 | 自动检测 |
 | `--transcript <path>` | 显式指定 transcript 的 `.jsonl` 或 `.db`（覆盖 `--session`） | |
 | `--harness <name>` | 强制指定存储范围：`claude-code`、`pi`、`opencode`、`none` | 自动检测 |
 | `--cwd <path>` | 粘贴图片时所在的项目目录 | 当前目录 |
 
-共五个 provider：`antigravity-cli`（免 key）、`gemini-api`（最快的免费通道）、`openai`（任意 OpenAI 兼容的多模态端点）、`anthropic`，以及 `claude-cli`（复用你现有的 Claude 订阅）。不带 `-p` 时，一次运行会依次尝试每个已配好的 provider：API 快车道（inline API provider，不启动 agent、直接调 API 的引擎）先试（5-10 秒），agent 类兜底，第一个可用结果胜出，其余尝试记录在 `meta.attempts` 里。通过 `reuse.<harness>` 授权的 harness 会把复用来的引擎补进相同的区段（pi 的凭据算快车道，agent CLI 排在后面），不会插到你自己引擎的前面。细节和 `guards` 的 deny/allow 名单见[配置手册](../skills/modlens/references/configure.zh-CN.md)。
+共五个 provider：`antigravity-cli`（免 key）、`gemini-api`（最快的免费通道）、`openai`（任意 OpenAI 兼容的多模态端点）、`anthropic`，以及 `claude-cli`（复用你现有的 Claude 订阅）。不带 `-p` 时，一次运行会依次尝试每个已配好的 provider：API 快车道（inline API provider，不启动 agent、直接调 API 的引擎）先试（5-10 秒），agent 类兜底，第一个可用结果胜出，其余尝试记录在 `meta.attempts` 里。通过 `reuse.<harness>` 授权的 harness 会把复用来的引擎补进相同的区段（pi 的凭据算快车道，agent CLI 排在后面），不会插到你自己引擎的前面。细节和 `guards` 的 deny/allow 名单见[配置手册](../skills/deepsee/references/configure.zh-CN.md)。
 
 其他子命令：
 
-- `modlens guard [--model <id>]`：判断当前激活的模型到底该不该运行引擎。退出码 0 表示放行，1 表示拒绝，判定结果以 JSON 输出。
-- `modlens config <init|set|show>`：可用的键有 `provider`、`proxy`（API provider 的 HTTP/HTTPS 代理，也认 `HTTPS_PROXY`/`HTTP_PROXY`）、`reuse.<claude|codex|opencode|pi|grok>`、`guards.<denyModels|allowModels|denyWhenUnknown>`，以及 `<provider>.<apiKey|baseUrl|model|proxy|extraBody>`。
-- `modlens doctor`：报告 Node 与 node:sqlite、各 provider 的就绪状态、本机的故障转移链、检测到的 harness、guard 规则和一次现场判定，以及 Reuse 一节里按 harness 的授权决定与发现的视觉能力。不花任何额度，`--json` 输出机器可读报告。
+- `deepsee guard [--model <id>]`：判断当前激活的模型到底该不该运行引擎。退出码 0 表示放行，1 表示拒绝，判定结果以 JSON 输出。
+- `deepsee config <init|set|show>`：可用的键有 `provider`、`proxy`（API provider 的 HTTP/HTTPS 代理，也认 `HTTPS_PROXY`/`HTTP_PROXY`）、`reuse.<claude|codex|opencode|pi|grok>`、`guards.<denyModels|allowModels|denyWhenUnknown>`，以及 `<provider>.<apiKey|baseUrl|model|proxy|extraBody>`。
+- `deepsee doctor`：报告 Node 与 node:sqlite、各 provider 的就绪状态、本机的故障转移链、检测到的 harness、guard 规则和一次现场判定，以及 Reuse 一节里按 harness 的授权决定与发现的视觉能力。不花任何额度，`--json` 输出机器可读报告。

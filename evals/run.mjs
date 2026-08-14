@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Local eval runner. Drives the built modlens CLI over the seed cases and writes
+// Local eval runner. Drives the built deepsee CLI over the seed cases and writes
 // one evidence artifact per case, then prints a pass/latency summary.
 //
 // This spends real provider quota, so it is on-demand and never runs in CI.
@@ -161,7 +161,7 @@ function runCase(entry, opts, tool, resultsDir) {
         case: name,
         title: spec.title ?? name,
         category: spec.category ?? null,
-        command: ['modlens', ...args.slice(1).map((a) => (a === image ? spec.image : a))].join(' '),
+        command: ['deepsee', ...args.slice(1).map((a) => (a === image ? spec.image : a))].join(' '),
         runDate: new Date().toISOString(),
         tool,
         provider: analyze?.provider ?? provider ?? '(default)',
@@ -212,7 +212,7 @@ function main() {
     const resultsDir = path.join(evalsDir, 'results', date);
     const results = cases.map((entry) => runCase(entry, opts, tool, resultsDir));
 
-    process.stdout.write(`\nmodlens eval  (${opts.dryRun ? 'dry-run' : 'live'})\n`);
+    process.stdout.write(`\ndeepsee eval  (${opts.dryRun ? 'dry-run' : 'live'})\n`);
     process.stdout.write(`tool ${tool.version} @ ${tool.commit ?? 'unknown'}\n\n`);
 
     for (const r of results) {

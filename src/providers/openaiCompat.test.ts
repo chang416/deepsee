@@ -17,7 +17,7 @@ const structured = {
 let tmpImage: string;
 
 beforeAll(() => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-oai-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-oai-'));
     tmpImage = path.join(dir, 'x.png');
     fs.writeFileSync(tmpImage, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
 });

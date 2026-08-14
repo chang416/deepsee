@@ -1,15 +1,15 @@
 {
     "id": "banner",
-    "title": "Project banner (stylized watercolor)",
+    "title": "DeepSee product banner",
     "category": "branding",
-    "image": "assets/banner.jpg",
+    "image": "assets/banner.png",
     "provider": null,
     "model": null,
     "prompt": null,
     "expect": {
-        "mustTranscribe": ["MODLENS", "plug-in vision for text-only LLMs"],
+        "mustTranscribe": ["DEEPSEE", "VISION + MODEL ROUTING", "GEMINI VISION", "DEEPSEEK CODE"],
         "numbers": [],
         "regionTypes": [],
-        "notes": "A stylized logo baseline: the wordmark and tagline must be read despite the textured, hand-drawn rendering."
+        "notes": "A product-brand baseline: the wordmark, positioning, and two halves of the core workflow must be transcribed."
     }
 }

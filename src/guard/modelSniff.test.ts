@@ -17,17 +17,17 @@ import {
 
 // The suite itself runs inside a real harness; keep detection out of the way.
 beforeEach(() => {
-    process.env.MODLENS_HARNESS = 'none';
+    process.env.DEEPSEE_HARNESS = 'none';
 });
 afterEach(() => {
-    delete process.env.MODLENS_HARNESS;
+    delete process.env.DEEPSEE_HARNESS;
 });
 
 // Fixture cwds are real temp paths and slug directories come from the same
 // slug functions the sniffers use, so the suite holds on Windows paths too
 // (a hardcoded '/tmp/proj' slug never matches C:\tmp\proj).
 function tempDir(): string {
-    return fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-guard-'));
+    return fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-guard-'));
 }
 
 // claudeProjectSlug only rewrites '/' and '.', so on Windows a resolved cwd

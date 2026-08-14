@@ -36,7 +36,7 @@ describe('provider subprocess lifecycle from an independent parent', () => {
     it('a SIGTERM-ignoring provider is SIGKILLed before the CLI process exits', {
         timeout: 20_000,
     }, async () => {
-        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-leak-'));
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-leak-'));
         const pidFile = path.join(dir, 'child.pid');
         const parent = spawn(process.execPath, [PARENT, pidFile], { stdio: 'ignore' });
         const exitCode = await new Promise<number | null>((resolve) => {

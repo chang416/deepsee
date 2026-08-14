@@ -8,9 +8,9 @@ name: release
 # with the matching CHANGELOG section as its notes.
 #
 # PREREQUISITE that cannot be configured in this file: npm-side trusted
-# publishing. On npmjs.com, open the @liustack/modlens package settings ->
+# publishing. On npmjs.com, open the @chang416/deepsee package settings ->
 # "Trusted publishers" and add this repository and this workflow
-# (liustack/modlens, .github/workflows/release.yml). That lets npm mint a
+# (chang416/deepsee, .github/workflows/release.yml). That lets npm mint a
 # short-lived credential from the OIDC token this workflow requests, so no
 # long-lived NPM_TOKEN secret is needed. Until it is set up, `npm publish
 # --provenance` will fail with an authentication error. The workflow side of the

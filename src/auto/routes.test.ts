@@ -14,7 +14,7 @@ import {
 } from './routes.ts';
 
 function pathWith(bins: Record<string, string>): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-routes-bin-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-routes-bin-'));
     for (const [bin, script] of Object.entries(bins)) {
         fs.writeFileSync(path.join(dir, bin), script, { mode: 0o755 });
     }
@@ -134,7 +134,7 @@ describe('opencodeCliRoute', () => {
 
 describe('piReusedRoutes', () => {
     function piHome(): string {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-routes-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-routes-home-'));
         fs.mkdirSync(path.join(home, '.pi', 'agent'), { recursive: true });
         fs.writeFileSync(
             path.join(home, '.pi', 'agent', 'models-store.json'),
@@ -207,7 +207,7 @@ describe('piReusedRoutes', () => {
         // No pi on PATH: the key could never be fetched.
         expect(piRoutes(home, { PATH: '' })).toEqual({ inline: [], agents: [] });
         fs.rmSync(home, { recursive: true, force: true });
-        const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-routes-home-'));
+        const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-routes-home-'));
         expect(piRoutes(empty, { PATH: pathWith({ pi: '#!/bin/sh\necho k\n' }) })).toEqual({
             inline: [],
             agents: [],
@@ -255,7 +255,7 @@ describe('piCliRoute', () => {
     });
 
     it('falls back to a pi-cli agent route for unmappable credentials', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-routes-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-routes-home-'));
         fs.mkdirSync(path.join(home, '.pi', 'agent'), { recursive: true });
         fs.writeFileSync(
             path.join(home, '.pi', 'agent', 'models-store.json'),
@@ -335,7 +335,7 @@ describe('grokCliRoute', () => {
 
 describe('pi credential safety and shape mapping', () => {
     function homeWith(models: object, auth: object): string {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-routes-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-routes-home-'));
         fs.mkdirSync(path.join(home, '.pi', 'agent'), { recursive: true });
         fs.writeFileSync(
             path.join(home, '.pi', 'agent', 'models-store.json'),
@@ -442,7 +442,7 @@ describe('reuseProviders', () => {
     };
 
     it('builds routes only for granted harnesses, region-ordered', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-routes-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-routes-home-'));
         const routes = reuseProviders(
             'local',
             { reuse: { codex: true, opencode: true, grok: true } },
@@ -454,7 +454,7 @@ describe('reuseProviders', () => {
     });
 
     it('builds nothing without grants, even when discovery is full', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-routes-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-routes-home-'));
         for (const config of [{}, { reuse: { codex: false, opencode: false } }]) {
             const routes = reuseProviders('local', config, { env: { PATH: '' }, home, discovery });
             expect(routes).toEqual({ inline: [], agents: [] });
@@ -463,7 +463,7 @@ describe('reuseProviders', () => {
     });
 
     it('keeps agents out of the remote kind entirely', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-routes-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-routes-home-'));
         const routes = reuseProviders(
             'remote',
             { reuse: { codex: true, opencode: true, pi: true } },

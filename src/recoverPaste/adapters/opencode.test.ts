@@ -11,10 +11,10 @@ const onWindows = process.platform === 'win32';
 // The suite itself runs inside a real harness, so default every test to
 // unscoped scanning.
 beforeEach(() => {
-    process.env.MODLENS_HARNESS = 'none';
+    process.env.DEEPSEE_HARNESS = 'none';
 });
 afterEach(() => {
-    delete process.env.MODLENS_HARNESS;
+    delete process.env.DEEPSEE_HARNESS;
 });
 
 describe('opencodeDirectoryFilter case handling', () => {
@@ -276,7 +276,7 @@ describe.skipIf(!DatabaseSync)('opencode harness support', { timeout: 30_000 }, 
     }
 
     it('recovers file parts by directory and by session, reporting the original filename', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-oc-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-oc-'));
         const cwd = '/tmp/proj';
         const db = openDb(home);
         insertImage(
@@ -307,7 +307,7 @@ describe.skipIf(!DatabaseSync)('opencode harness support', { timeout: 30_000 }, 
     it('matches sessions across the repo-root/subdirectory gap in both directions', () => {
         // opencode records session.directory where it was launched, but runs
         // bash at the repo root; recovery must survive the mismatch.
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-oc-dir-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-oc-dir-'));
         const root = '/tmp/repo';
         const db = openDb(home);
         insertImage(
@@ -336,7 +336,7 @@ describe.skipIf(!DatabaseSync)('opencode harness support', { timeout: 30_000 }, 
     });
 
     it('scopes recovery to the single session owning the newest image', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-oc-scope-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-oc-scope-'));
         const cwd = '/tmp/proj';
         const db = openDb(home);
         insertImage(db, 1, 's-old', path.resolve(cwd), 1_000, 'old-session-image');
@@ -355,7 +355,7 @@ describe.skipIf(!DatabaseSync)('opencode harness support', { timeout: 30_000 }, 
     // cannot be located there; the cross-store ranking is exercised on POSIX. The
     // three tests above already prove OpenCode recovery end to end on Windows.
     it.skipIf(onWindows)('outranks older jsonl images when its part is newest', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-oc2-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-oc2-'));
         const cwd = '/tmp/proj';
         const claudeDir = path.join(home, '.claude', 'projects', '-tmp-proj');
         fs.mkdirSync(claudeDir, { recursive: true });

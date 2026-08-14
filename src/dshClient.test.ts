@@ -26,6 +26,7 @@ interface Harness {
     insertedText: () => string;
     listeners: () => Record<string, number>;
     dispose: () => void;
+    clickText: (text: string) => void;
     setModelLabel: (label: string) => void;
 }
 
@@ -36,7 +37,7 @@ function loadClient(options: {
 }): Harness {
     const fetchCalls: FetchCall[] = [];
     const policy = options.policy ?? (() => ({ status: 200, takeover: false }));
-    const uploadPath = options.uploadPath ?? '/tmp/modlens-test/paste.png';
+    const uploadPath = options.uploadPath ?? '/tmp/deepsee-test/paste.png';
     const postStatus = options.postStatus ?? 200;
 
     let modelLabel = '';
@@ -160,6 +161,14 @@ function loadClient(options: {
             return counts;
         },
         dispose: () => disposer?.(),
+        clickText: (text) => {
+            const target = {
+                textContent: text,
+                getAttribute: () => '',
+                parentElement: null,
+            };
+            for (const fn of handlers.get('click') ?? []) fn({ target });
+        },
         setModelLabel: (label) => {
             modelLabel = label;
         },
@@ -169,6 +178,15 @@ function loadClient(options: {
 const IMAGE = [{ type: 'image/png' }];
 
 describe('dsh paste-to-path browser half', () => {
+    it('ships visual self-check controls in the in-app settings panel', () => {
+        expect(SOURCE).toContain('Gemini visual self-check');
+        expect(SOURCE).toContain('Require a PASS before final delivery');
+        expect(SOURCE).toContain('Maximum rounds per phase');
+        expect(SOURCE).toContain('visualCheck: {');
+        expect(SOURCE).toContain("'ui-implementation'");
+        expect(SOURCE).toContain("'visual-review'");
+    });
+
     it('takes a paste over only after the host confirms a text-only model', async () => {
         const harness = loadClient({
             policy: (label) => ({ status: 200, takeover: label.includes('DeepSeek') }),
@@ -185,7 +203,7 @@ describe('dsh paste-to-path browser half', () => {
         expect(second.prevented).toBe(true);
         expect(second.stopped).toBe(true);
         await harness.settle();
-        expect(harness.insertedText()).toContain('/tmp/modlens-test/paste.png');
+        expect(harness.insertedText()).toContain('/tmp/deepsee-test/paste.png');
         const posts = harness.fetchCalls.filter((call) => call.init?.method === 'POST');
         expect(posts).toHaveLength(1);
     });
@@ -311,12 +329,20 @@ describe('dsh paste-to-path browser half', () => {
         expect(paste.prevented).toBe(false);
     });
 
-    it('the cordis effect removes both listeners on disposal', () => {
+    it('checks onboarding the first time DeepSee Customize is selected', async () => {
+        const harness = loadClient({});
+        harness.clickText('DeepSee Customize · Your routing');
+        await harness.settle();
+        expect(harness.fetchCalls.some((call) => call.url === '/deepsee/settings')).toBe(true);
+    });
+
+    it('the cordis effect removes all listeners on disposal', () => {
         const harness = loadClient({});
         expect(harness.listeners().paste).toBe(1);
         expect(harness.listeners().focusin).toBe(1);
         harness.dispose();
         expect(harness.listeners().paste).toBe(0);
         expect(harness.listeners().focusin).toBe(0);
+        expect(harness.listeners().click).toBe(0);
     });
 });

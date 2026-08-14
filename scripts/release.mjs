@@ -129,4 +129,4 @@ run('git', ['push', '--atomic', 'origin', 'main', `refs/tags/v${next}`]);
 console.log(
     `\nTag v${next} pushed. CI will finish the release: npm publish and the GitHub Release.`,
 );
-console.log('Watch it: gh run watch, or https://github.com/liustack/modlens/actions');
+console.log('Watch it: gh run watch, or https://github.com/chang416/deepsee/actions');

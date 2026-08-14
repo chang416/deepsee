@@ -24,11 +24,11 @@ const onWindows = process.platform === 'win32';
 // detection tests opt in explicitly.
 const REAL_SESSION_ENV = process.env.CLAUDE_CODE_SESSION_ID;
 beforeEach(() => {
-    process.env.MODLENS_HARNESS = 'none';
+    process.env.DEEPSEE_HARNESS = 'none';
     delete process.env.CLAUDE_CODE_SESSION_ID;
 });
 afterEach(() => {
-    delete process.env.MODLENS_HARNESS;
+    delete process.env.DEEPSEE_HARNESS;
     if (REAL_SESSION_ENV === undefined) {
         delete process.env.CLAUDE_CODE_SESSION_ID;
     } else {
@@ -86,8 +86,8 @@ function piImageLine(
 
 describe.skipIf(onWindows)('slug encoding', () => {
     it('derives claude project slugs (slashes and dots become dashes)', () => {
-        expect(claudeProjectSlug('/Users/dev/projects/liustack-web')).toBe(
-            '-Users-dev-projects-liustack-web',
+        expect(claudeProjectSlug('/Users/dev/projects/deepsee-web')).toBe(
+            '-Users-dev-projects-deepsee-web',
         );
         expect(claudeProjectSlug('/Users/dev/.claude')).toBe('-Users-dev--claude');
     });
@@ -100,7 +100,7 @@ describe.skipIf(onWindows)('slug encoding', () => {
 
 describe('extractUserImages + recoverPastedImages', () => {
     it('extracts user image blocks in order, skipping assistant images and junk lines', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-rec-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-rec-'));
         const transcript = path.join(dir, 's1.jsonl');
         const lines = [
             JSON.stringify({ message: { role: 'user', content: [{ type: 'text', text: 'hi' }] } }),
@@ -139,7 +139,7 @@ describe('extractUserImages + recoverPastedImages', () => {
     });
 
     it('clamps count to 20 recovered images per call', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-clamp-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-clamp-'));
         const transcript = path.join(dir, 'session.jsonl');
         const lines = Array.from({ length: 25 }, (_, i) =>
             imageLine(
@@ -160,7 +160,7 @@ describe('extractUserImages + recoverPastedImages', () => {
     });
 
     it('fails with guidance when no images exist', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-rec-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-rec-'));
         const transcript = path.join(dir, 'empty.jsonl');
         fs.writeFileSync(
             transcript,
@@ -173,7 +173,7 @@ describe('extractUserImages + recoverPastedImages', () => {
 
 describe.skipIf(onWindows)('locateTranscript (via recoverPastedImages)', () => {
     it('picks the session with the newest image timestamp, resisting mtime misdirection', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-home-'));
         const cwd = '/tmp/proj';
         const dir = path.join(home, '.claude', 'projects', '-tmp-proj');
         fs.mkdirSync(dir, { recursive: true });
@@ -206,7 +206,7 @@ describe.skipIf(onWindows)('locateTranscript (via recoverPastedImages)', () => {
 
 describe.skipIf(onWindows)('transcriptForSession', () => {
     it('targets the exact session file and errors on a missing one', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-sess-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-sess-'));
         const cwd = '/tmp/proj';
         const dir = path.join(home, '.claude', 'projects', '-tmp-proj');
         fs.mkdirSync(dir, { recursive: true });
@@ -242,7 +242,7 @@ describe.skipIf(onWindows)('transcriptForSession', () => {
 
 describe.skipIf(onWindows)('pi harness support', () => {
     it('recovers pi-format images and reports the harness', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-pi-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-pi-'));
         const cwd = '/tmp/proj';
         const dir = path.join(home, '.pi', 'agent', 'sessions', '--tmp-proj--');
         fs.mkdirSync(dir, { recursive: true });
@@ -270,7 +270,7 @@ describe.skipIf(onWindows)('pi harness support', () => {
     });
 
     it('picks the globally newest image across claude and pi sessions', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-both-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-both-'));
         const cwd = '/tmp/proj';
         const claudeDir = path.join(home, '.claude', 'projects', '-tmp-proj');
         const piDir = path.join(home, '.pi', 'agent', 'sessions', '--tmp-proj--');
@@ -302,7 +302,7 @@ describe('harness detection scoping', () => {
     it.skipIf(onWindows)(
         'scopes recovery to the detected harness even when another store has newer images',
         () => {
-            const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-scope-'));
+            const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-scope-'));
             const cwd = '/tmp/proj';
             const claudeDir = path.join(home, '.claude', 'projects', '-tmp-proj');
             fs.mkdirSync(claudeDir, { recursive: true });
@@ -319,7 +319,7 @@ describe('harness detection scoping', () => {
 
             const realHome = process.env.HOME;
             process.env.HOME = home;
-            process.env.MODLENS_HARNESS = 'pi';
+            process.env.DEEPSEE_HARNESS = 'pi';
             try {
                 const result = recoverPastedImages({ cwd, outDir: path.join(home, 'out') });
                 expect(result.harness).toBe('pi');
@@ -335,7 +335,7 @@ describe('harness detection scoping', () => {
     it.skipIf(onWindows)(
         'refuses to fall through to other stores when the detected harness has nothing',
         () => {
-            const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-scope2-'));
+            const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-scope2-'));
             const cwd = '/tmp/proj';
             const claudeDir = path.join(home, '.claude', 'projects', '-tmp-proj');
             fs.mkdirSync(claudeDir, { recursive: true });
@@ -346,7 +346,7 @@ describe('harness detection scoping', () => {
 
             const realHome = process.env.HOME;
             process.env.HOME = home;
-            process.env.MODLENS_HARNESS = 'opencode';
+            process.env.DEEPSEE_HARNESS = 'opencode';
             try {
                 expect(() => recoverPastedImages({ cwd, outDir: path.join(home, 'out') })).toThrow(
                     /No pasted images/,
@@ -359,14 +359,14 @@ describe('harness detection scoping', () => {
     );
 
     it('rejects recover-paste in codex with path-tag guidance', () => {
-        process.env.MODLENS_HARNESS = 'codex';
+        process.env.DEEPSEE_HARNESS = 'codex';
         expect(() => recoverPastedImages({ cwd: '/tmp/nowhere' })).toThrow(/Codex session/);
     });
 
     it.skipIf(onWindows)(
         'auto-targets the exact Claude Code session from the injected env var',
         () => {
-            const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-envsess-'));
+            const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-envsess-'));
             const cwd = '/tmp/proj';
             const claudeDir = path.join(home, '.claude', 'projects', '-tmp-proj');
             fs.mkdirSync(claudeDir, { recursive: true });
@@ -382,7 +382,7 @@ describe('harness detection scoping', () => {
 
             const realHome = process.env.HOME;
             process.env.HOME = home;
-            process.env.MODLENS_HARNESS = 'claude-code';
+            process.env.DEEPSEE_HARNESS = 'claude-code';
             process.env.CLAUDE_CODE_SESSION_ID = 'env-sess';
             try {
                 const result = recoverPastedImages({ cwd, outDir: path.join(home, 'out') });
@@ -403,7 +403,7 @@ describe('harness detection scoping', () => {
 
 describe.skipIf(onWindows)('cross-project safety', () => {
     it('rejects a transcript that records no cwd at all (fail closed over slug collisions)', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-nocwd-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-nocwd-'));
         const slugDir = path.join(
             home,
             '.claude',
@@ -419,7 +419,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
         );
         const realHome = process.env.HOME;
         process.env.HOME = home;
-        process.env.MODLENS_HARNESS = 'none';
+        process.env.DEEPSEE_HARNESS = 'none';
         try {
             expect(() =>
                 recoverPastedImages({ cwd: '/tmp/project-alpha', outDir: path.join(home, 'out') }),
@@ -439,7 +439,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
 
     it('rejects a transcript whose recorded cwd belongs to another project', () => {
         // /tmp/project.alpha and /tmp/project-alpha share one Claude slug.
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-collide-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-collide-'));
         const slugDir = path.join(
             home,
             '.claude',
@@ -459,7 +459,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
 
         const realHome = process.env.HOME;
         process.env.HOME = home;
-        process.env.MODLENS_HARNESS = 'none';
+        process.env.DEEPSEE_HARNESS = 'none';
         try {
             expect(() =>
                 recoverPastedImages({ cwd: '/tmp/project-alpha', outDir: path.join(home, 'out') }),
@@ -471,7 +471,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
     });
 
     it('keeps recovered images private to this user', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-perm-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-perm-'));
         const dir = path.join(home, '.claude', 'projects', claudeProjectSlug('/tmp/p'));
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(
@@ -481,7 +481,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
 
         const realHome = process.env.HOME;
         process.env.HOME = home;
-        process.env.MODLENS_HARNESS = 'none';
+        process.env.DEEPSEE_HARNESS = 'none';
         try {
             const outDir = path.join(home, 'out');
             const result = recoverPastedImages({ cwd: '/tmp/p', outDir });
@@ -494,7 +494,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
     });
 
     it('refuses a pre-existing group- or world-accessible out-dir', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-outdir-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-outdir-'));
         const dir = path.join(home, '.claude', 'projects', claudeProjectSlug('/tmp/p'));
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(
@@ -509,7 +509,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
 
         const realHome = process.env.HOME;
         process.env.HOME = home;
-        process.env.MODLENS_HARNESS = 'none';
+        process.env.DEEPSEE_HARNESS = 'none';
         try {
             expect(() => recoverPastedImages({ cwd: '/tmp/p', outDir })).toThrow(
                 /group- or world-accessible/,
@@ -521,7 +521,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
     });
 
     it('mints a private per-call directory when no out-dir is given', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-default-out-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-default-out-'));
         const dir = path.join(home, '.claude', 'projects', claudeProjectSlug('/tmp/p'));
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(
@@ -531,7 +531,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
 
         const realHome = process.env.HOME;
         process.env.HOME = home;
-        process.env.MODLENS_HARNESS = 'none';
+        process.env.DEEPSEE_HARNESS = 'none';
         try {
             const a = recoverPastedImages({ cwd: '/tmp/p' });
             const b = recoverPastedImages({ cwd: '/tmp/p' });
@@ -549,7 +549,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
     });
 
     it('keeps an unmapped media type instead of relabelling it png', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-mime-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-mime-'));
         const dir = path.join(home, '.claude', 'projects', claudeProjectSlug('/tmp/p'));
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(
@@ -559,7 +559,7 @@ describe.skipIf(onWindows)('cross-project safety', () => {
 
         const realHome = process.env.HOME;
         process.env.HOME = home;
-        process.env.MODLENS_HARNESS = 'none';
+        process.env.DEEPSEE_HARNESS = 'none';
         try {
             const result = recoverPastedImages({ cwd: '/tmp/p', outDir: path.join(home, 'out') });
             expect(result.images[0].path.endsWith('.heic')).toBe(true);

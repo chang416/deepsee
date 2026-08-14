@@ -7,6 +7,7 @@ import {
     defaultProviderName,
     initConfigFile,
     loadConfigFile,
+    normalizeApiKeys,
     renderEffectiveConfig,
     resolveProviderSettings,
     setConfigValue,
@@ -45,11 +46,56 @@ describe('resolveProviderSettings', () => {
         );
         expect(settings.baseUrl).toBe('https://gw.example.com/v1');
     });
+
+    it('normalizes Gemini config keys and mirrors the first key to legacy apiKey', () => {
+        const settings = resolveProviderSettings(
+            'gemini-api',
+            {
+                providers: {
+                    'gemini-api': {
+                        apiKey: 'legacy-key',
+                        apiKeys: [' first-key ', 'first-key', '', 'second-key'],
+                    },
+                },
+            },
+            {},
+        );
+        expect(settings.apiKeys).toEqual(['first-key', 'second-key']);
+        expect(settings.apiKey).toBe('first-key');
+    });
+
+    it('uses GEMINI_API_KEYS over GEMINI_API_KEY and accepts comma/newline input', () => {
+        const settings = resolveProviderSettings(
+            'gemini-api',
+            { providers: { 'gemini-api': { apiKey: 'file-key' } } },
+            {
+                GEMINI_API_KEYS: '  env-one, env-two\nenv-one  ',
+                GEMINI_API_KEY: 'legacy-env-key',
+            },
+        );
+        expect(settings.apiKeys).toEqual(['env-one', 'env-two']);
+        expect(settings.apiKey).toBe('env-one');
+    });
+
+    it('falls back from an empty plural env var to the singular legacy env var', () => {
+        const settings = resolveProviderSettings(
+            'gemini-api',
+            { providers: { 'gemini-api': { apiKeys: ['file-key'] } } },
+            { GEMINI_API_KEYS: ' ,\n ', GEMINI_API_KEY: ' env-legacy ' },
+        );
+        expect(settings.apiKeys).toEqual(['env-legacy']);
+        expect(settings.apiKey).toBe('env-legacy');
+    });
+
+    it('normalizes arbitrary key input without exposing delimiters or duplicates', () => {
+        expect(normalizeApiKeys([' a,b ', 'b\nc', '', '  '])).toEqual(['a', 'b', 'c']);
+        expect(normalizeApiKeys('["json-one", "json-two"]')).toEqual(['json-one', 'json-two']);
+    });
 });
 
 describe('setConfigValue + loadConfigFile + renderEffectiveConfig', () => {
     it('round-trips dotted keys and masks keys on render', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cfg-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
         const file = path.join(dir, 'config.json');
         setConfigValue('provider', 'gemini-api', file);
         setConfigValue('gemini-api.apiKey', 'AIzaSecretSecret123', file);
@@ -78,6 +124,19 @@ describe('setConfigValue + loadConfigFile + renderEffectiveConfig', () => {
         expect(parsed.providers['gemini-api'].apiKey).not.toContain('FromEnv');
         // model came from the file, tagged file.
         expect(parsed.providers['gemini-api'].model).toBe('m1 (file)');
+    });
+
+    it('renders plural Gemini env keys as a count without exposing key material', () => {
+        const rendered = renderEffectiveConfig(
+            {},
+            { GEMINI_API_KEYS: 'env-first, env-second\nenv-first' },
+        );
+        const parsed = JSON.parse(rendered) as {
+            providers: Record<string, Record<string, string>>;
+        };
+        expect(parsed.providers['gemini-api'].apiKeys).toBe('2 keys (env)');
+        expect(rendered).not.toContain('env-first');
+        expect(rendered).not.toContain('env-second');
     });
 
     it('masks proxy credentials everywhere config show renders them', () => {
@@ -110,7 +169,7 @@ describe('setConfigValue + loadConfigFile + renderEffectiveConfig', () => {
     });
 
     it('stores extraBody as parsed JSON, clears it on an empty value, and shows it', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cfg-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
         const file = path.join(dir, 'config.json');
         setConfigValue('openai.extraBody', '{"thinking":{"type":"disabled"}}', file);
         // An object, not the string: the provider merges it into the request body.
@@ -129,8 +188,26 @@ describe('setConfigValue + loadConfigFile + renderEffectiveConfig', () => {
         fs.rmSync(dir, { recursive: true, force: true });
     });
 
+    it('stores Gemini apiKeys as a normalized array and renders only its count', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
+        const file = path.join(dir, 'config.json');
+        setConfigValue('gemini-api.apiKeys', ' first-key, second-key\nfirst-key ', file);
+        expect(loadConfigFile(file).providers?.['gemini-api']?.apiKeys).toEqual([
+            'first-key',
+            'second-key',
+        ]);
+        const rendered = JSON.parse(renderEffectiveConfig(loadConfigFile(file), {})) as {
+            providers: Record<string, Record<string, string>>;
+        };
+        expect(rendered.providers['gemini-api'].apiKeys).toBe('2 keys (file)');
+        expect(JSON.stringify(rendered)).not.toContain('first-key');
+        setConfigValue('gemini-api.apiKeys', ' ,\n ', file);
+        expect(loadConfigFile(file).providers?.['gemini-api']?.apiKeys).toBeUndefined();
+        fs.rmSync(dir, { recursive: true, force: true });
+    });
+
     it('rejects malformed json with a fix hint', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cfg-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
         const file = path.join(dir, 'config.json');
         fs.writeFileSync(file, '{broken');
         expect(() => loadConfigFile(file)).toThrow('Fix or delete the file');
@@ -140,7 +217,7 @@ describe('setConfigValue + loadConfigFile + renderEffectiveConfig', () => {
 
 describe('guards config', () => {
     it('round-trips guards.denyModels from a JSON array or a comma list', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cfg-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
         const file = path.join(dir, 'config.json');
         setConfigValue('guards.denyModels', '["gemini-3*", "gpt-5.6*"]', file);
         expect(loadConfigFile(file).guards?.denyModels).toEqual(['gemini-3*', 'gpt-5.6*']);
@@ -153,7 +230,7 @@ describe('guards config', () => {
     });
 
     it('records per-harness reuse decisions as strict booleans, empty clears', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cfg-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
         const file = path.join(dir, 'config.json');
         setConfigValue('reuse.codex', 'true', file);
         setConfigValue('reuse.pi', 'false', file);
@@ -168,7 +245,7 @@ describe('guards config', () => {
     });
 
     it('round-trips guards.allowModels the same way', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cfg-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
         const file = path.join(dir, 'config.json');
         setConfigValue('guards.allowModels', '["deepseek-v4-*", "glm-5.*"]', file);
         expect(loadConfigFile(file).guards?.allowModels).toEqual(['deepseek-v4-*', 'glm-5.*']);
@@ -191,7 +268,7 @@ describe('guards config', () => {
     });
 
     it('parses guards.denyWhenUnknown as a boolean and rejects other fields', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cfg-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
         const file = path.join(dir, 'config.json');
         setConfigValue('guards.denyWhenUnknown', 'true', file);
         expect(loadConfigFile(file).guards?.denyWhenUnknown).toBe(true);
@@ -217,7 +294,7 @@ describe('guards config', () => {
 
 describe('initConfigFile', () => {
     it('writes the starter template and refuses to overwrite without force', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-init-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-init-'));
         const file = path.join(dir, 'config.json');
         initConfigFile(file);
         expect(loadConfigFile(file)).toEqual(CONFIG_TEMPLATE);

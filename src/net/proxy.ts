@@ -61,7 +61,7 @@ export function connectFailureHint(error: unknown, url: string): string | null {
     return (
         `Could not connect to ${host} (${cause.code}). The request never reached the network. ` +
         'If this machine reaches the internet through a proxy, set HTTPS_PROXY/HTTP_PROXY, ' +
-        'or run: modlens config set proxy <url>'
+        'or run: deepsee config set proxy <url>'
     );
 }
 

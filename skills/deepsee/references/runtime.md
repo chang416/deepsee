@@ -1,6 +1,6 @@
-# modlens runtime reference
+# deepsee runtime reference
 
-How the skill launches the `modlens` CLI, what version it pins, and how it
+How the skill launches the `deepsee` CLI, what version it pins, and how it
 diagnoses a machine where nothing can run. The launchers `scripts/run.sh`
 (macOS / Linux) and `scripts/run.ps1` (Windows) implement everything below and
 must stay byte-for-byte identical apart from their version constants and their
@@ -8,9 +8,9 @@ shell syntax.
 
 ## Pinned version
 
-- Pinned CLI version: 3.16.1
-- npm package: `@liustack/modlens`
-- CLI binary name: `modlens`
+- Pinned CLI version: 4.0.0
+- npm package: `deepsee`
+- CLI binary name: `deepsee`
 
 The pinned version line above and the constants inside both launchers are
 stamped by `scripts/release.mjs` at release time from `package.json`. Do not
@@ -21,9 +21,9 @@ launcher/reference copies ever drift from `package.json`.
 
 Each call resolves a way to run the CLI, in this order:
 
-1. **A compatible `modlens` already on `PATH`** — run it directly, by name.
-2. **`npx` present, and `node` meets the CLI's 22.19 floor** — `npx --yes --package @liustack/modlens@<pinned> modlens <args>`. An npx sitting on an older node is skipped: it would select a path known to fail at run time.
-3. **`bunx` present** — `bunx --bun @liustack/modlens@<pinned> <args>`.
+1. **A compatible `deepsee` already on `PATH`** — run it directly, by name.
+2. **`npx` present, and `node` meets the CLI's 22.19 floor** — `npx --yes --package @chang416/deepsee@<pinned> deepsee <args>`. An npx sitting on an older node is skipped: it would select a path known to fail at run time.
+3. **`bunx` present** — `bunx --bun @chang416/deepsee@<pinned> <args>`.
 4. **A native artifact** — reserved for phase B. None is published yet, so this
    branch reports `nativeArtifact.available: false` and moves on.
 5. **Nothing usable** — print a structured diagnosis and exit `78` (`EX_CONFIG`).
@@ -33,7 +33,7 @@ CLI's JSON output contract is identical however it was launched.
 
 ## Compatibility rule
 
-A `modlens` found on `PATH` counts as compatible only when it is **the same
+A `deepsee` found on `PATH` counts as compatible only when it is **the same
 major version as the pinned version and not older than it**. Same major keeps a
 user who already installed a matching CLI from being forced through an `npx`
 re-download (the "no regression" requirement in the design). Not-older refuses a
@@ -49,9 +49,9 @@ else is ever downloaded. When native artifacts land in phase B, the
 launchers will cache them per user, keyed by version, and launch them by
 absolute path:
 
-- macOS: `~/Library/Caches/liustack/modlens/<version>/`
-- Linux: `${XDG_CACHE_HOME:-$HOME/.cache}/liustack/modlens/<version>/`
-- Windows: `%LOCALAPPDATA%\liustack\modlens\<version>\`
+- macOS: `~/Library/Caches/deepsee/<version>/`
+- Linux: `${XDG_CACHE_HOME:-$HOME/.cache}/deepsee/<version>/`
+- Windows: `%LOCALAPPDATA%\deepsee\<version>\`
 
 With these constraints: no `sudo` or admin rights, no system directories, no
 `PATH` edits, download to a temp file and verify SHA-256 before an atomic move,
@@ -67,7 +67,7 @@ would have set.
 - `tool`, `package`, `pinnedVersion` — what this skill targets.
 - `os`, `arch` — normalized host identity (`darwin` / `linux` / `windows`,
   `arm64` / `x64`).
-- `checked.pathCli` — `{ present, path, version, compatible }` for a `modlens`
+- `checked.pathCli` — `{ present, path, version, compatible }` for a `deepsee`
   on `PATH`, with `compatible` applying the rule above.
 - `checked.npx` — `{ present, path, nodeMeetsFloor }`; `nodeMeetsFloor` is whether
   the local node satisfies the CLI's 22.19 floor, required for the npx path.
@@ -93,14 +93,14 @@ real Node install — 22.19+, since that is the floor this launcher accepts.
 
 ## Delivery form: local CLI, long term
 
-modlens stays a local CLI on purpose, and section 10 of the distribution design
+deepsee stays a local CLI on purpose, and section 10 of the distribution design
 (move capabilities to a remote MCP when they need no local execution) does
 **not** apply to it. The reasons are the product itself: the vision-provider key
 is held on the user's machine, the quota billed is the user's own, and there is
-no central service in the middle. modlens also reads local files directly. Its
+no central service in the middle. deepsee also reads local files directly. Its
 `recover-paste` pulls pasted images out of the harness's own session storage on
 disk, which a remote service structurally cannot reach. A hosted MCP would move
 the key and the quota off the user's machine and still could not see those local
 files, which is the opposite of what this tool is for. Phase D may retire native
-artifacts for some future tool, but modlens keeps its local-CLI form for as long
+artifacts for some future tool, but deepsee keeps its local-CLI form for as long
 as those properties hold.

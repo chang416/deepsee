@@ -27,8 +27,9 @@ describe('dsh plugin bundle', () => {
         expect(pkg.exports?.['./dsh']).toBe('./dsh/index.js');
         expect(pkg.files).toContain('dsh');
         expect(pkg.files).toContain('cordis.patch.yml');
+        expect(fs.existsSync(path.join(__dirname, '..', 'dsh', 'visual-check.js'))).toBe(true);
         const patch = fs.readFileSync(path.join(__dirname, '..', 'cordis.patch.yml'), 'utf-8');
-        expect(patch).toContain("name: '@liustack/modlens'");
+        expect(patch).toContain("name: 'deepsee'");
     });
 });
 
@@ -65,7 +66,7 @@ describe('dsh plugin auto-read (phase 2)', () => {
     }
 
     function fakeCli(body: string): string {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-dsh-cli-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-dsh-cli-'));
         const file = path.join(dir, 'cli.js');
         fs.writeFileSync(file, body);
         return file;
@@ -79,12 +80,12 @@ describe('dsh plugin auto-read (phase 2)', () => {
         ],
     });
 
-    it('rewrites image blocks into modlens evidence text after next()', async () => {
+    it('rewrites image blocks into deepsee evidence text after next()', async () => {
         const handlers = await load();
         const cli = fakeCli(
             `console.log(JSON.stringify({ result: { summary: 'S', ocr: { full_text: 'HELLO-EVIDENCE' }, uncertainty: [] } }))`,
         );
-        process.env.MODLENS_DSH_CLI = cli;
+        process.env.DEEPSEE_DSH_CLI = cli;
         try {
             const messages = [imageMessage()];
             const decision = await handlers['agent/pre-step'](
@@ -98,7 +99,7 @@ describe('dsh plugin auto-read (phase 2)', () => {
             expect(blocks[1].text).toContain('HELLO-EVIDENCE');
             expect(blocks[1].text).toContain('Pasted image');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 
@@ -139,7 +140,7 @@ describe('dsh plugin auto-read (phase 2)', () => {
              if (!f.endsWith('.heic')) { console.error('wrong ext: ' + f); process.exit(9) }
              console.log(JSON.stringify({ result: { summary: 'S', ocr: { full_text: 'HEIC-OK' }, uncertainty: [] } }))`,
         );
-        process.env.MODLENS_DSH_CLI = cli;
+        process.env.DEEPSEE_DSH_CLI = cli;
         try {
             const load = (mediaType: string) => {
                 const handlers: Record<string, Handler> = {};
@@ -172,7 +173,7 @@ describe('dsh plugin auto-read (phase 2)', () => {
             );
             expect(pdf.messages?.[0].content[1].text).toContain('unsupported pasted media type');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 
@@ -181,7 +182,7 @@ describe('dsh plugin auto-read (phase 2)', () => {
         const cli = fakeCli(
             `console.log(JSON.stringify({ result: { summary: 'S', ocr: { full_text: 'DEEP-NESTED' }, uncertainty: [] } }))`,
         );
-        process.env.MODLENS_DSH_CLI = cli;
+        process.env.DEEPSEE_DSH_CLI = cli;
         try {
             // Two levels down: tool-result inside tool-result, image at the bottom.
             const messages = [
@@ -212,14 +213,14 @@ describe('dsh plugin auto-read (phase 2)', () => {
             expect(outer.content[0].content[0].type).toBe('text');
             expect(outer.content[0].content[0].text).toContain('DEEP-NESTED');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 
     it('degrades a failed read to an explanatory block instead of rejecting the step', async () => {
         const handlers = await load();
         const cli = fakeCli(`console.error('engine down'); process.exit(1)`);
-        process.env.MODLENS_DSH_CLI = cli;
+        process.env.DEEPSEE_DSH_CLI = cli;
         try {
             const messages = [imageMessage()];
             const decision = await handlers['agent/pre-step'](
@@ -231,7 +232,7 @@ describe('dsh plugin auto-read (phase 2)', () => {
             expect(block?.text).toContain('could not be read');
             expect(block?.text).toContain('engine down');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 
@@ -315,34 +316,34 @@ describe('dsh plugin vision provider (phase 3)', () => {
             },
         };
         await loadWith(llm);
-        expect(registered[0].providers).toEqual(['deepseek-modlens']);
-        const providerInfo = registered[0].adapter.providerInfo('deepseek-modlens') as {
+        expect(registered[0].providers).toEqual(['deepseek-deepsee']);
+        const providerInfo = registered[0].adapter.providerInfo('deepseek-deepsee') as {
             id: string;
             name: string;
         };
-        expect(providerInfo.id).toBe('deepseek-modlens');
+        expect(providerInfo.id).toBe('deepseek-deepsee');
         expect(providerInfo.name.length).toBeGreaterThan(0);
-        expect(registered[0].adapter.providerRetryPolicy('deepseek-modlens')).toBeUndefined();
+        expect(registered[0].adapter.providerRetryPolicy('deepseek-deepsee')).toBeUndefined();
         const adapter = registered[0].adapter;
-        const models = (await adapter.listModels('deepseek-modlens')) as Array<{
+        const models = (await adapter.listModels('deepseek-deepsee')) as Array<{
             provider: string;
             name: string;
             inputModalities: string[];
         }>;
         expect(models).toHaveLength(1);
-        expect(models[0].provider).toBe('deepseek-modlens');
+        expect(models[0].provider).toBe('deepseek-deepsee');
         expect(models[0].inputModalities).toContain('image');
-        expect(models[0].name).toContain('modlens vision');
-        const info = (await adapter.resolveModel('deepseek-modlens', 'deepseek-v4-flash')) as {
+        expect(models[0].name).toContain('deepsee vision');
+        const info = (await adapter.resolveModel('deepseek-deepsee', 'deepseek-v4-flash')) as {
             provider: string;
             id: string;
             inputModalities: string[];
         };
-        expect(info.provider).toBe('deepseek-modlens');
+        expect(info.provider).toBe('deepseek-deepsee');
         expect(info.id).toBe('deepseek-v4-flash');
         expect(info.inputModalities).toEqual(['text', 'image']);
         for await (const _chunk of adapter.stream({
-            provider: 'deepseek-modlens',
+            provider: 'deepseek-deepsee',
             model: 'deepseek-v4-flash',
             messages: [],
         }) as AsyncIterable<unknown>) {
@@ -368,14 +369,14 @@ describe('dsh plugin request-time image conversion (v2)', () => {
         const plugin = (await import('../dsh/index.js')) as {
             apply: (ctx: unknown, config?: Record<string, unknown>) => void;
         };
-        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-dsh-cli-'));
+        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-dsh-cli-'));
         const marker = path.join(cliDir, 'count');
         const cli = path.join(cliDir, 'cli.js');
         fs.writeFileSync(
             cli,
             `const fs=require('fs');fs.appendFileSync(${JSON.stringify(marker)},'x');console.log(JSON.stringify({result:{summary:'S',ocr:{full_text:'WIRE-EVIDENCE'},uncertainty:[]}}))`,
         );
-        process.env.MODLENS_DSH_CLI = cli;
+        process.env.DEEPSEE_DSH_CLI = cli;
         try {
             const registered: Array<{ adapter: Record<string, CallableFunction> }> = [];
             const streamed: Array<{
@@ -405,7 +406,7 @@ describe('dsh plugin request-time image conversion (v2)', () => {
             plugin.apply(ctx as never, {});
             const adapter = registered[0].adapter;
             const request = {
-                provider: 'deepseek-modlens',
+                provider: 'deepseek-deepsee',
                 model: 'm',
                 messages: [
                     {
@@ -432,7 +433,7 @@ describe('dsh plugin request-time image conversion (v2)', () => {
             }
             expect(fs.readFileSync(marker, 'utf-8')).toBe('x');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 
@@ -444,13 +445,13 @@ describe('dsh plugin request-time image conversion (v2)', () => {
         const plugin = (await import('../dsh/index.js')) as {
             apply: (ctx: unknown, config?: Record<string, unknown>) => void;
         };
-        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-dsh-nested-'));
+        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-dsh-nested-'));
         const cli = path.join(cliDir, 'cli.js');
         fs.writeFileSync(
             cli,
             `console.log(JSON.stringify({result:{summary:'S',ocr:{full_text:'NESTED-EVIDENCE'},uncertainty:[]}}))`,
         );
-        process.env.MODLENS_DSH_CLI = cli;
+        process.env.DEEPSEE_DSH_CLI = cli;
         try {
             const registered: Array<{ adapter: Record<string, CallableFunction> }> = [];
             const streamed: Array<{
@@ -490,7 +491,7 @@ describe('dsh plugin request-time image conversion (v2)', () => {
                 {},
             );
             const request = {
-                provider: 'deepseek-modlens',
+                provider: 'deepseek-deepsee',
                 model: 'm',
                 messages: [
                     {
@@ -524,7 +525,7 @@ describe('dsh plugin request-time image conversion (v2)', () => {
             };
             expect(original.content[1].type).toBe('image');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 
@@ -555,18 +556,18 @@ describe('dsh plugin request-time image conversion (v2)', () => {
             } as never,
             {},
         );
-        process.env.MODLENS_DSH_CLI = cli;
+        process.env.DEEPSEE_DSH_CLI = cli;
         return registered[0].adapter;
     }
 
     const imageRequest = (id: string) => ({
-        provider: 'deepseek-modlens',
+        provider: 'deepseek-deepsee',
         model: 'm',
         messages: [{ role: 'user', content: [{ type: 'image', attachment: { id } }] }],
     });
 
     it('does not memoize a failed read: the next step retries', async () => {
-        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-dsh-retry-'));
+        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-dsh-retry-'));
         const marker = path.join(cliDir, 'runs');
         const cli = path.join(cliDir, 'cli.js');
         // First run fails (transient config error), later runs succeed.
@@ -590,12 +591,12 @@ describe('dsh plugin request-time image conversion (v2)', () => {
             }
             expect(fs.readFileSync(marker, 'utf-8')).toBe('xx');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 
     it("one caller's abort neither kills the other waiter nor the shared read", async () => {
-        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-dsh-abort-'));
+        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-dsh-abort-'));
         const marker = path.join(cliDir, 'runs');
         const cli = path.join(cliDir, 'cli.js');
         fs.writeFileSync(
@@ -632,12 +633,12 @@ describe('dsh plugin request-time image conversion (v2)', () => {
             expect(await survivor).toBe('completed');
             expect(fs.readFileSync(marker, 'utf-8')).toBe('x');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 
     it('joins concurrent readers of the same attachment into one CLI run', async () => {
-        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-dsh-conc-'));
+        const cliDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-dsh-conc-'));
         const marker = path.join(cliDir, 'runs');
         const cli = path.join(cliDir, 'cli.js');
         // Slow enough that both streams overlap the same in-flight read.
@@ -658,13 +659,13 @@ describe('dsh plugin request-time image conversion (v2)', () => {
             await Promise.all([drain(), drain()]);
             expect(fs.readFileSync(marker, 'utf-8')).toBe('x');
         } finally {
-            delete process.env.MODLENS_DSH_CLI;
+            delete process.env.DEEPSEE_DSH_CLI;
         }
     });
 });
 
 describe('dsh plugin tool-name collision (#21)', () => {
-    it('falls back to modlens_read_image and keeps the rest of the plugin alive', async () => {
+    it('falls back to deepsee_read_image and keeps the rest of the plugin alive', async () => {
         // @ts-expect-error untyped on purpose
         const plugin = (await import('../dsh/index.js')) as {
             apply: (ctx: unknown, config?: Record<string, unknown>) => void;
@@ -695,9 +696,9 @@ describe('dsh plugin tool-name collision (#21)', () => {
             } as never,
             {},
         );
-        expect(registered).toContain('modlens_read_image');
+        expect(registered).toContain('deepsee_read_image');
         // The collision no longer fails the fiber: the vision wrapper registered.
-        expect(adapters).toContain('deepseek-modlens');
+        expect(adapters).toContain('deepseek-deepsee');
     });
 
     it('an unrelated registration error degrades without killing apply', async () => {
@@ -735,7 +736,7 @@ describe('image format contract (CLI, skill, dsh in lockstep)', () => {
     it('the skill trigger extensions are exactly the CLI extension table', async () => {
         const { MIME_BY_EXT } = await import('./imageInput.ts');
         const skill = fs.readFileSync(
-            path.join(__dirname, '..', 'skills', 'modlens', 'SKILL.md'),
+            path.join(__dirname, '..', 'skills', 'deepsee', 'SKILL.md'),
             'utf-8',
         );
         const match = skill.match(/\(((?:\.\w+, )+\.\w+)\)/);
@@ -806,7 +807,7 @@ describe('dsh paste-to-path host route', () => {
         return routes;
     }
 
-    function fakeReq(method: string, body: Buffer, url = '/modlens/paste') {
+    function fakeReq(method: string, body: Buffer, url = '/deepsee/paste') {
         return {
             method,
             url,
@@ -833,9 +834,9 @@ describe('dsh paste-to-path host route', () => {
         };
     }
 
-    it('registers /modlens/paste under the web profile and writes a private file', async () => {
+    it('registers /deepsee/paste under the web profile and writes a private file', async () => {
         const routes = await routeOf();
-        expect(routes[0]?.path).toBe('/modlens/paste');
+        expect(routes[0]?.path).toBe('/deepsee/paste');
         const { out, res } = fakeRes();
         const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 5]);
         await routes[0].handler(fakeReq('POST', png) as never, res as never);
@@ -862,7 +863,11 @@ describe('dsh paste-to-path host route', () => {
             b.res as never,
         );
         expect(b.out.code).toBe(400);
-        expect(await routeOf({ pasteToPath: false })).toEqual([]);
+        // Disabling paste-to-path leaves the independent DeepSee settings
+        // control plane available for keys and Auto/Customize routing.
+        expect((await routeOf({ pasteToPath: false })).map((route) => route.path)).toEqual([
+            '/deepsee/settings',
+        ]);
     });
 
     it('sniffs to the CLI table: near-miss magic bytes are refused, real brands pass', async () => {
@@ -928,7 +933,7 @@ describe('dsh paste-to-path host route', () => {
                 fakeReq(
                     'GET',
                     Buffer.alloc(0),
-                    `/modlens/paste?model=${encodeURIComponent(label)}`,
+                    `/deepsee/paste?model=${encodeURIComponent(label)}`,
                 ) as never,
                 res as never,
             );
@@ -940,7 +945,7 @@ describe('dsh paste-to-path host route', () => {
         // A vision model no name heuristic would catch: paste stays native.
         expect(await ask('Select model, current Qwen2.5-VL')).toBe(false);
         // Our own wrapped variant converts at request time: stays native.
-        expect(await ask('DeepSeek-V4-Flash (modlens vision)')).toBe(false);
+        expect(await ask('DeepSeek-V4-Flash (deepsee vision)')).toBe(false);
         // Unresolvable labels fail toward the native paste path.
         expect(await ask('Mystery Model 9000')).toBe(false);
         expect(await ask('')).toBe(false);
@@ -969,7 +974,7 @@ describe('dsh paste-to-path host route', () => {
             fakeReq(
                 'GET',
                 Buffer.alloc(0),
-                `/modlens/paste?model=${encodeURIComponent('current Shared Model')}`,
+                `/deepsee/paste?model=${encodeURIComponent('current Shared Model')}`,
             ) as never,
             res as never,
         );
@@ -995,7 +1000,7 @@ describe('dsh paste-to-path host route', () => {
             fakeReq(
                 'GET',
                 Buffer.alloc(0),
-                `/modlens/paste?model=${encodeURIComponent('Select model, current Pro')}`,
+                `/deepsee/paste?model=${encodeURIComponent('Select model, current Pro')}`,
             ) as never,
             res as never,
         );
@@ -1016,7 +1021,7 @@ describe('dsh paste-to-path host route', () => {
             fakeReq(
                 'GET',
                 Buffer.alloc(0),
-                `/modlens/paste?model=${encodeURIComponent('current Shared Model')}`,
+                `/deepsee/paste?model=${encodeURIComponent('current Shared Model')}`,
             ) as never,
             res as never,
         );
@@ -1040,7 +1045,7 @@ describe('dsh paste-to-path host route', () => {
             fakeReq(
                 'GET',
                 Buffer.alloc(0),
-                `/modlens/paste?model=${encodeURIComponent('Select model, current AI')}`,
+                `/deepsee/paste?model=${encodeURIComponent('Select model, current AI')}`,
             ) as never,
             res as never,
         );
@@ -1071,7 +1076,7 @@ describe('dsh paste-to-path host route', () => {
                 fakeReq(
                     'GET',
                     Buffer.alloc(0),
-                    `/modlens/paste?model=${encodeURIComponent('current Shared Model')}`,
+                    `/deepsee/paste?model=${encodeURIComponent('current Shared Model')}`,
                 ) as never,
                 res as never,
             );
@@ -1117,7 +1122,7 @@ describe('dsh paste-to-path host route', () => {
                 fakeReq(
                     'GET',
                     Buffer.alloc(0),
-                    `/modlens/paste?model=${encodeURIComponent('current Shared Model')}`,
+                    `/deepsee/paste?model=${encodeURIComponent('current Shared Model')}`,
                 ) as never,
                 res as never,
             );
@@ -1146,7 +1151,7 @@ describe('dsh paste-to-path host route', () => {
             fakeReq(
                 'GET',
                 Buffer.alloc(0),
-                `/modlens/paste?model=${encodeURIComponent('current Vision Pro')}`,
+                `/deepsee/paste?model=${encodeURIComponent('current Vision Pro')}`,
             ) as never,
             res as never,
         );
@@ -1157,7 +1162,7 @@ describe('dsh paste-to-path host route', () => {
         const routes = await routeOf();
         const { out, res } = fakeRes();
         await routes[0].handler(
-            fakeReq('GET', Buffer.alloc(0), '/modlens/paste?model=DeepSeek-V4-Flash') as never,
+            fakeReq('GET', Buffer.alloc(0), '/deepsee/paste?model=DeepSeek-V4-Flash') as never,
             res as never,
         );
         expect(out.code).toBe(200);
@@ -1230,50 +1235,50 @@ describe('dsh vision provider auto-discovery (#29)', () => {
 
     it('wraps every route carrying wrappable family models, exactly once each', async () => {
         const { registered, attempts } = await discoveryCtx([deepseek, opencode, unrelated]);
-        // deepseek-official keeps its historical id; others get modlens-<id>;
+        // deepseek-official keeps its historical id; others get deepsee-<id>;
         // a route with no family models is left alone. Attempts are counted
         // before the fake's duplicate check and the fake broadcasts on every
         // registration like the real registry, so a re-entrancy bug shows up
         // here as extra ATTEMPTS even when duplicate errors keep the success
         // list clean.
-        expect([...registered].sort()).toEqual(['deepseek-modlens', 'modlens-opencode-go']);
-        expect([...attempts].sort()).toEqual(['deepseek-modlens', 'modlens-opencode-go']);
+        expect([...registered].sort()).toEqual(['deepsee-opencode-go', 'deepseek-deepsee']);
+        expect([...attempts].sort()).toEqual(['deepsee-opencode-go', 'deepseek-deepsee']);
     });
 
     it('honors the discover whitelist', async () => {
         const { registered } = await discoveryCtx([deepseek, opencode], {
             discover: ['opencode-go'],
         });
-        expect(registered).toEqual(['modlens-opencode-go']);
+        expect(registered).toEqual(['deepsee-opencode-go']);
     });
 
     it('a set upstream keeps single-route legacy mode', async () => {
         const { registered } = await discoveryCtx([deepseek, opencode], {
             upstream: 'deepseek-official',
         });
-        expect(registered).toEqual(['deepseek-modlens']);
+        expect(registered).toEqual(['deepseek-deepsee']);
     });
 
     it('never wraps its own wrappers', async () => {
         const { registered } = await discoveryCtx([
             deepseek,
-            { id: 'modlens-opencode-go', models: [{ id: 'glm-5.3' }] },
+            { id: 'deepsee-opencode-go', models: [{ id: 'glm-5.3' }] },
         ]);
-        expect(registered).toEqual(['deepseek-modlens']);
+        expect(registered).toEqual(['deepseek-deepsee']);
     });
 
     it('late routes are wrapped when the registry notifies', async () => {
         const { registered, handlers, live } = await discoveryCtx([deepseek]);
-        expect(registered).toEqual(['deepseek-modlens']);
+        expect(registered).toEqual(['deepseek-deepsee']);
         // llm-pi-ai style: a provider registering after plugin mount.
         live.push(opencode);
         handlers['llm/adapters-updated']();
         await new Promise((r) => setTimeout(r, 10));
-        expect(registered).toContain('modlens-opencode-go');
+        expect(registered).toContain('deepsee-opencode-go');
         // And the notification never duplicates existing wraps.
         handlers['llm/adapters-updated']();
         await new Promise((r) => setTimeout(r, 10));
-        expect(registered.filter((id) => id === 'modlens-opencode-go')).toHaveLength(1);
+        expect(registered.filter((id) => id === 'deepsee-opencode-go')).toHaveLength(1);
     });
 
     it('notifications landing inside the probe window never double-register', async () => {
@@ -1317,7 +1322,7 @@ describe('dsh vision provider auto-discovery (#29)', () => {
         }
         releaseProbe([{ id: 'glm-5.3' }]);
         await new Promise((r) => setTimeout(r, 30));
-        expect(attempts).toEqual(['modlens-opencode-go']);
+        expect(attempts).toEqual(['deepsee-opencode-go']);
     });
 
     it('a sweep failure is contained, and the next notification recovers', async () => {
@@ -1358,7 +1363,7 @@ describe('dsh vision provider auto-discovery (#29)', () => {
         boom = false;
         handlers['llm/adapters-updated']();
         await new Promise((r) => setTimeout(r, 10));
-        expect(attempts).toEqual(['modlens-opencode-go']);
+        expect(attempts).toEqual(['deepsee-opencode-go']);
     });
 
     it('a route without eligible models is retried when models appear later', async () => {
@@ -1368,7 +1373,7 @@ describe('dsh vision provider auto-discovery (#29)', () => {
         live[0].models.push({ id: 'glm-5.3' });
         handlers['llm/adapters-updated']();
         await new Promise((r) => setTimeout(r, 10));
-        expect(registered).toEqual(['modlens-opencode-go']);
+        expect(registered).toEqual(['deepsee-opencode-go']);
     });
 
     it('the legacy fallback on an old registry surface registers exactly once', async () => {
@@ -1399,6 +1404,6 @@ describe('dsh vision provider auto-discovery (#29)', () => {
         handlers['llm/adapters-updated']();
         handlers['llm/adapters-updated']();
         await new Promise((r) => setTimeout(r, 10));
-        expect(registered).toEqual(['deepseek-modlens']);
+        expect(registered).toEqual(['deepseek-deepsee']);
     });
 });

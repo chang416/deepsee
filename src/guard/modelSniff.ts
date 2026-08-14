@@ -290,7 +290,7 @@ export function opencodeModelForCwd(cwd: string, dbPath = opencodeDbPath()): Sni
 
     // Same directory scoping as paste recovery. No session pinning exists for
     // opencode (it injects no session env), so concurrent sessions in the same
-    // project can shadow each other; MODLENS_MODEL is the documented override.
+    // project can shadow each other; DEEPSEE_MODEL is the documented override.
     const directory = opencodeDirectoryFilter(path.resolve(cwd));
     const sql = `SELECT message.data AS data
                  FROM message

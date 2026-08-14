@@ -1,20 +1,23 @@
 {
     "id": "diagram",
-    "title": "Four-step flow diagram",
+    "title": "DeepSee vision and routing flow diagram",
     "category": "diagram",
-    "image": "assets/flow.en.png",
+    "image": "evals/fixtures/flow.png",
     "provider": null,
     "model": null,
     "prompt": null,
     "expect": {
         "mustTranscribe": [
-            "Text-only model",
-            "modlens skill",
-            "Vision engine",
-            "Structured evidence"
+            "IMAGE",
+            "GEMINI VISION",
+            "DEEPSEEK CODE",
+            "FLASH",
+            "PRO",
+            "AUTO",
+            "CUSTOMIZE"
         ],
         "numbers": [],
         "regionTypes": [],
-        "notes": "A clean four-box flow. Every box title must be transcribed in reading order."
+        "notes": "A clean product flow. The visual input, Gemini vision role, DeepSeek coding role, and all four routing choices must be transcribed."
     }
 }

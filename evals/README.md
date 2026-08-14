@@ -1,7 +1,7 @@
-# modlens evals
+# deepsee evals
 
 Every experiment should leave behind a reproducible piece of evidence. This
-directory turns that into a format and a runner, so a claim like "modlens reads
+directory turns that into a format and a runner, so a claim like "deepsee reads
 dense charts" comes with an artifact anyone can re-run and check.
 
 This is **local, on-demand** tooling. It drives the real CLI and spends real
@@ -26,7 +26,7 @@ Each case is a directory under `cases/` holding a `case.json`:
     "id": "chart",
     "title": "human label",
     "category": "chart",
-    "image": "assets/demo-codex-chart.png",
+    "image": "evals/fixtures/chart.png",
     "provider": null,
     "model": null,
     "prompt": null,
@@ -58,14 +58,14 @@ it:
 | :-- | :-- |
 | `command` | the CLI invocation, with the image path as written in the case |
 | `runDate` | ISO timestamp of the run |
-| `tool` | `{ version, commit }` of modlens under test |
+| `tool` | `{ version, commit }` of deepsee under test |
 | `provider`, `model` | what actually served the request |
 | `inputSha256` | SHA-256 of the input image, so a changed input is obvious |
 | `latencyMs` | wall-clock time for the run |
 | `usage` | the raw usage the provider reported (`null` if none) |
 | `expected` | the case's `expect` block, copied in |
 | `scoring` | per-string `mustTranscribe`/`numbers` hits, `regionTypes` hits, `transcriptionPass`, `schemaPass`, and any `schemaMissing` paths |
-| `rawOutput` | the full `modlens analyze` result JSON |
+| `rawOutput` | the full `deepsee analyze` result JSON |
 | `error` | exit code, parse error, and stderr when a run fails (`null` otherwise) |
 | `degraded` | a note when the provider that ran differs from the one requested |
 

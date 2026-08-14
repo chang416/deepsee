@@ -27,7 +27,7 @@ describe('resolveInput', () => {
     });
 
     it('decodes escaped characters in file:// URLs', () => {
-        const filePath = path.join(os.tmpdir(), 'modlens shot #1.png');
+        const filePath = path.join(os.tmpdir(), 'deepsee shot #1.png');
         const resolved = resolveInput(pathToFileURL(filePath).href);
         expect(resolved).toEqual({ source: path.resolve(filePath), kind: 'local' });
     });
@@ -58,7 +58,7 @@ describe('composeChain preferences', () => {
     };
 
     function binDir(bins: string[]): string {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-chain-bin-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-chain-bin-'));
         for (const bin of bins) {
             fs.writeFileSync(path.join(dir, bin), '#!/bin/sh\n', { mode: 0o755 });
         }
@@ -67,7 +67,7 @@ describe('composeChain preferences', () => {
 
     it('keeps a preferred claude-cli ahead of reused agents', () => {
         const dir = binDir(['claude', 'codex']);
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-chain-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-chain-home-'));
         const chain = composeChain(
             'local',
             { provider: 'claude-cli', reuse: { codex: true } },
@@ -81,7 +81,7 @@ describe('composeChain preferences', () => {
     it('keeps a preferred agent ahead of reused inline keys when no base inline exists', () => {
         const dir = binDir(['agy', 'pi']);
         fs.writeFileSync(path.join(dir, 'pi'), '#!/bin/sh\necho k\n', { mode: 0o755 });
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-chain-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-chain-home-'));
         fs.mkdirSync(path.join(home, '.pi', 'agent'), { recursive: true });
         fs.writeFileSync(
             path.join(home, '.pi', 'agent', 'models-store.json'),
@@ -116,10 +116,10 @@ describe('composeChain preferences', () => {
 
 describe('composeChain remote security boundary', () => {
     it('keeps reused inline keys ahead of a preferred agent for remote URLs', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-chain-bin-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-chain-bin-'));
         fs.writeFileSync(path.join(dir, 'agy'), '#!/bin/sh\n', { mode: 0o755 });
         fs.writeFileSync(path.join(dir, 'pi'), '#!/bin/sh\necho k\n', { mode: 0o755 });
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-chain-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-chain-home-'));
         fs.mkdirSync(path.join(home, '.pi', 'agent'), { recursive: true });
         fs.writeFileSync(
             path.join(home, '.pi', 'agent', 'models-store.json'),
@@ -165,7 +165,7 @@ describe.skipIf(onWindows)('provider subprocess handling', () => {
 
     /** Fake provider binary plus a throwaway image to analyze. */
     function fakeProvider(script: string) {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-proc-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-proc-'));
         const bin = path.join(dir, 'fake-agy');
         fs.writeFileSync(bin, script, { mode: 0o755 });
         const image = path.join(dir, 'image.png');
@@ -236,7 +236,7 @@ describe.skipIf(onWindows)('provider subprocess handling', () => {
     it('runs a subprocess provider in an isolated workdir holding only the image', async () => {
         // An injection in the image should not be able to read siblings of the
         // original file, so the agent runs in a throwaway dir of one image.
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-iso-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-iso-'));
         cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }));
         const image = path.join(dir, 'shot.png');
         fs.writeFileSync(image, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
@@ -263,7 +263,7 @@ describe.skipIf(onWindows)('provider subprocess handling', () => {
     it('hands the provider a real copy, so writing the temp image never mutates the original', async () => {
         // The isolated image used to be a hardlink sharing the original's
         // inode, so a provider writing "its" temp file rewrote the user's file.
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-mut-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-mut-'));
         cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }));
         const image = path.join(dir, 'shot.png');
         fs.writeFileSync(image, 'original-bytes');
@@ -283,7 +283,7 @@ describe.skipIf(onWindows)('provider subprocess handling', () => {
     it('runs a remote image in an empty throwaway cwd, not the caller directory', async () => {
         // A remote image has no local file to isolate, but the agent must still
         // not inherit the caller's directory, which it used to fall back to.
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-rem-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-rem-'));
         cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }));
         const record = path.join(dir, 'record.txt');
         const bin = path.join(dir, 'fake-agy');
@@ -322,7 +322,7 @@ describe.skipIf(onWindows)('provider subprocess handling', () => {
         // The real failure mode: a process that traps SIGTERM. child.killed goes
         // true the instant SIGTERM is delivered, so the old !child.killed guard
         // never fired SIGKILL and this process would outlive the timeout.
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-kill-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-kill-'));
         cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }));
         const bin = path.join(dir, 'stubborn');
         const pidFile = path.join(dir, 'pid');
@@ -392,7 +392,7 @@ describe.skipIf(onWindows)('provider failover', () => {
 
     /** A directory on PATH holding a fake agy with the given script, plus an image. */
     function fakeAgyDir(script: string) {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-fo-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-fo-'));
         cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }));
         fs.writeFileSync(path.join(dir, 'agy'), script, { mode: 0o755 });
         const image = path.join(dir, 'shot.png');
@@ -480,7 +480,7 @@ describe.skipIf(onWindows)('provider failover', () => {
     }, 30_000);
 
     it('a lone failing provider still hints at never-asked reusable vision', async () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-auto-e2e-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-auto-e2e-'));
         cleanups.push(() => fs.rmSync(home, { recursive: true, force: true }));
         fs.mkdirSync(path.join(home, '.codex'));
         fs.writeFileSync(path.join(home, '.codex', 'auth.json'), '{}');
@@ -499,7 +499,7 @@ describe.skipIf(onWindows)('provider failover', () => {
     }, 30_000);
 
     it('auto mode prepends borrowed routes: a discovered codex answers first and is accounted for', async () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-auto-e2e-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-auto-e2e-'));
         cleanups.push(() => fs.rmSync(home, { recursive: true, force: true }));
         fs.mkdirSync(path.join(home, '.codex'));
         fs.writeFileSync(path.join(home, '.codex', 'config.toml'), 'approval_policy = "never"\n');
@@ -512,7 +512,7 @@ describe.skipIf(onWindows)('provider failover', () => {
             }),
             JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 1 } }),
         ].join('\n');
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-fo-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-fo-'));
         cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }));
         // PATH holds only the fake bin dir, so the script sticks to shell
         // builtins (no cat) and the events carry no single quotes (JSON).
@@ -540,9 +540,9 @@ describe.skipIf(onWindows)('provider failover', () => {
     }, 30_000);
 
     it('without the auto switch the same machine has no chain at all', async () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-auto-e2e-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-auto-e2e-'));
         cleanups.push(() => fs.rmSync(home, { recursive: true, force: true }));
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-fo-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-fo-'));
         cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }));
         fs.writeFileSync(path.join(dir, 'codex'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
         const image = path.join(dir, 'shot.png');
@@ -560,7 +560,7 @@ describe.skipIf(onWindows)('provider failover', () => {
     });
 
     it('an explicit -p pin ignores auto routes entirely', async () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-auto-e2e-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-auto-e2e-'));
         cleanups.push(() => fs.rmSync(home, { recursive: true, force: true }));
         fs.mkdirSync(path.join(home, '.codex'));
         fs.writeFileSync(path.join(home, '.codex', 'config.toml'), 'approval_policy = "never"\n');
@@ -637,7 +637,7 @@ describe.skipIf(onWindows)('provider failover', () => {
     }, 30_000);
 
     it('reports how to set up when nothing is configured at all', async () => {
-        const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-none-'));
+        const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-none-'));
         cleanups.push(() => fs.rmSync(empty, { recursive: true, force: true }));
         const image = path.join(empty, 'shot.png');
         fs.writeFileSync(image, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));

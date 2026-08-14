@@ -80,7 +80,7 @@ export interface AutoDiscovery {
 export interface DiscoverOptions {
     env?: NodeJS.ProcessEnv;
     home?: string;
-    /** Cache location, default <home>/.modlens/auto-cache.json. */
+    /** Cache location, default <home>/.deepsee/auto-cache.json. */
     cachePath?: string;
     /** Bypass and rewrite the cache. */
     fresh?: boolean;
@@ -361,7 +361,7 @@ function readCache(cachePath: string, ttlMs: number): CacheFile | null {
 export function discoverAuto(options: DiscoverOptions = {}): AutoDiscovery {
     const env = options.env ?? process.env;
     const home = options.home ?? os.homedir();
-    const cachePath = options.cachePath ?? path.join(home, '.modlens', 'auto-cache.json');
+    const cachePath = options.cachePath ?? path.join(home, '.deepsee', 'auto-cache.json');
     const ttlMs = options.ttlMs ?? DEFAULT_TTL_MS;
 
     if (!options.fresh) {

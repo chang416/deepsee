@@ -7,10 +7,17 @@ import { parseExtraBody } from './util/extraBody.ts';
 import { parseJsonOrExplain } from './util/json.ts';
 import { maskUrlCredentials } from './util/redact.ts';
 
-// Layered configuration: CLI flags > environment variables > ~/.modlens/config.json > built-ins.
+// Layered configuration: CLI flags > environment variables > ~/.deepsee/config.json > built-ins.
 
 export interface ProviderSettings {
+    /**
+     * Legacy single-key field. Gemini settings also expose `apiKeys`; when
+     * both are present, the first normalized `apiKeys` entry is authoritative
+     * and is mirrored here so older consumers remain compatible.
+     */
     apiKey?: string;
+    /** Ordered API keys used by providers that support key rotation (Gemini). */
+    apiKeys?: string[];
     baseUrl?: string;
     model?: string;
     /**
@@ -32,11 +39,11 @@ export type ProviderStringField = 'apiKey' | 'baseUrl' | 'model' | 'proxy';
 
 const STRING_FIELDS: ProviderStringField[] = ['apiKey', 'baseUrl', 'model', 'proxy'];
 
-/** Harnesses whose local logins modlens can be granted to borrow. */
+/** Harnesses whose local logins deepsee can be granted to borrow. */
 export const REUSE_HARNESSES = ['claude', 'codex', 'opencode', 'pi', 'grok'] as const;
 export type ReuseHarness = (typeof REUSE_HARNESSES)[number];
 
-export interface ModlensConfig {
+export interface DeepseeConfig {
     provider?: string;
     /** Default proxy URL for all API providers (see ProviderSettings.proxy). */
     proxy?: string;
@@ -53,7 +60,7 @@ export interface ModlensConfig {
     reuse?: Partial<Record<ReuseHarness, boolean>>;
 }
 
-export const CONFIG_DIR = path.join(os.homedir(), '.modlens');
+export const CONFIG_DIR = path.join(os.homedir(), '.deepsee');
 export const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
 
 const ENV_BINDINGS: Record<string, Partial<Record<ProviderStringField, string>>> = {
@@ -62,7 +69,55 @@ const ENV_BINDINGS: Record<string, Partial<Record<ProviderStringField, string>>>
     anthropic: { apiKey: 'ANTHROPIC_API_KEY', baseUrl: 'ANTHROPIC_BASE_URL' },
 };
 
-export function loadConfigFile(configPath = CONFIG_PATH): ModlensConfig {
+const GEMINI_API_KEYS_ENV = 'GEMINI_API_KEYS';
+const GEMINI_API_KEY_ENV = 'GEMINI_API_KEY';
+
+/**
+ * Normalize keys supplied by config or an environment variable. The plural
+ * environment form deliberately accepts both comma and newline separators so
+ * a settings UI can pass one key per line while shells can use `a,b`.
+ * Ordering is retained and duplicate/blank entries are removed.
+ */
+export function normalizeApiKeys(value: unknown): string[] {
+    const candidates: string[] = [];
+    const visit = (item: unknown): void => {
+        if (typeof item === 'string') {
+            const trimmed = item.trim();
+            if (trimmed.startsWith('[')) {
+                try {
+                    const parsed: unknown = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) {
+                        visit(parsed);
+                        return;
+                    }
+                } catch {
+                    // Treat a malformed JSON-looking value as delimiter text;
+                    // the same normalization still gives callers a safe,
+                    // deterministic result instead of throwing from env read.
+                }
+            }
+            candidates.push(...item.split(/[\r\n,]+/));
+        } else if (Array.isArray(item)) {
+            for (const nested of item) {
+                visit(nested);
+            }
+        }
+    };
+    visit(value);
+
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+    for (const candidate of candidates) {
+        const key = candidate.trim();
+        if (key && !seen.has(key)) {
+            seen.add(key);
+            normalized.push(key);
+        }
+    }
+    return normalized;
+}
+
+export function loadConfigFile(configPath = CONFIG_PATH): DeepseeConfig {
     let raw: string;
     try {
         raw = fs.readFileSync(configPath, 'utf-8');
@@ -82,7 +137,7 @@ export function loadConfigFile(configPath = CONFIG_PATH): ModlensConfig {
         if (!parsed || typeof parsed !== 'object') {
             return {};
         }
-        return parsed as ModlensConfig;
+        return parsed as DeepseeConfig;
     } catch (error) {
         throw new Error(
             `Failed to parse ${configPath}: ${(error as Error).message}. Fix or delete the file.`,
@@ -90,26 +145,29 @@ export function loadConfigFile(configPath = CONFIG_PATH): ModlensConfig {
     }
 }
 
-export function defaultProviderName(config: ModlensConfig): string {
+export function defaultProviderName(config: DeepseeConfig): string {
     return config.provider?.trim() || 'antigravity-cli';
 }
 
 /** Resolve settings for one provider with env vars overriding the config file. */
 export function resolveProviderSettings(
     providerName: string,
-    config: ModlensConfig,
+    config: DeepseeConfig,
     env: NodeJS.ProcessEnv = process.env,
 ): ProviderSettings {
+    const canonicalProviderName = providerAliases()[providerName] ?? providerName;
     // Settings saved under an alias (config set gemini.apiKey) were invisible
     // once the name resolved to its canonical form.
     const aliasNames = Object.entries(providerAliases())
-        .filter(([alias, canonical]) => canonical === providerName && alias !== providerName)
+        .filter(
+            ([alias, canonical]) => canonical === canonicalProviderName && alias !== providerName,
+        )
         .map(([alias]) => alias);
     const fromFile = {
         ...Object.assign({}, ...aliasNames.map((alias) => config.providers?.[alias] ?? {})),
         ...(config.providers?.[providerName] ?? {}),
     };
-    const bindings = ENV_BINDINGS[providerName] ?? {};
+    const bindings = ENV_BINDINGS[canonicalProviderName] ?? {};
 
     const settings: ProviderSettings = { ...fromFile };
     // The top-level proxy is the default; a provider-level one overrides it.
@@ -122,6 +180,35 @@ export function resolveProviderSettings(
         const value = env[envName]?.trim();
         if (value) {
             settings[field] = value;
+        }
+    }
+
+    if (canonicalProviderName === 'gemini-api') {
+        // Explicit plural env input wins over singular env input, which wins
+        // over the plural config field, which wins over legacy apiKey. An
+        // empty/whitespace-only plural value is treated as absent so a valid
+        // singular key is not accidentally disabled.
+        const envKeys = normalizeApiKeys(env[GEMINI_API_KEYS_ENV]);
+        const envLegacyKeys = normalizeApiKeys(env[GEMINI_API_KEY_ENV]);
+        const fileKeys = normalizeApiKeys(fromFile.apiKeys);
+        const fileLegacyKeys = normalizeApiKeys(fromFile.apiKey);
+        const keys =
+            envKeys.length > 0
+                ? envKeys
+                : envLegacyKeys.length > 0
+                  ? envLegacyKeys
+                  : fileKeys.length > 0
+                    ? fileKeys
+                    : fileLegacyKeys;
+
+        if (keys.length > 0) {
+            settings.apiKeys = keys;
+            // Keep the first key mirrored in the legacy field. Existing
+            // readiness checks and callers that only understand apiKey then
+            // continue to work while the Gemini provider rotates apiKeys.
+            settings.apiKey = keys[0];
+        } else {
+            delete settings.apiKeys;
         }
     }
     return settings;
@@ -165,12 +252,24 @@ export function setConfigValue(dottedKey: string, value: string, configPath = CO
         const dot = dottedKey.indexOf('.');
         if (dot <= 0 || dot === dottedKey.length - 1) {
             throw new Error(
-                `Invalid config key: ${dottedKey}. Use "provider", "reuse.<claude|codex|opencode|pi|grok>", "guards.<denyModels|allowModels|denyWhenUnknown>", or "<provider>.<apiKey|baseUrl|model|extraBody>".`,
+                `Invalid config key: ${dottedKey}. Use "provider", "reuse.<claude|codex|opencode|pi|grok>", "guards.<denyModels|allowModels|denyWhenUnknown>", or "<provider>.<apiKey|apiKeys|baseUrl|model|extraBody>".`,
             );
         }
         const providerName = dottedKey.slice(0, dot);
         const field = dottedKey.slice(dot + 1);
-        if (field === 'extraBody') {
+        if (field === 'apiKeys') {
+            config.providers ??= {};
+            config.providers[providerName] ??= {};
+            // A blank value clears the rotation list. Otherwise accept the
+            // same comma/newline format as GEMINI_API_KEYS and persist the
+            // normalized array, not a delimiter-dependent string.
+            const keys = normalizeApiKeys(value);
+            if (keys.length === 0) {
+                delete config.providers[providerName].apiKeys;
+            } else {
+                config.providers[providerName].apiKeys = keys;
+            }
+        } else if (field === 'extraBody') {
             config.providers ??= {};
             config.providers[providerName] ??= {};
             // An empty value clears it, so a user who no longer wants the
@@ -185,7 +284,7 @@ export function setConfigValue(dottedKey: string, value: string, configPath = CO
             }
         } else if (!STRING_FIELDS.includes(field as ProviderStringField)) {
             throw new Error(
-                `Unknown config field: ${field}. Use apiKey, baseUrl, model, proxy, or extraBody.`,
+                `Unknown config field: ${field}. Use apiKey, apiKeys, baseUrl, model, proxy, or extraBody.`,
             );
         } else {
             config.providers ??= {};
@@ -204,7 +303,7 @@ export function setConfigValue(dottedKey: string, value: string, configPath = CO
 }
 
 /** Accepts a JSON array of globs or a comma-separated list. Empty clears. */
-function setGuardsValue(config: ModlensConfig, field: string, value: string): void {
+function setGuardsValue(config: DeepseeConfig, field: string, value: string): void {
     if (field === 'denyModels' || field === 'allowModels') {
         if (value.trim() === '') {
             delete config.guards?.[field];
@@ -249,7 +348,7 @@ function parseModelList(value: string, key: string): string[] {
  * placeholders, and writing today's defaults into the file freezes them, so a
  * later change to a default model would be silently overridden by this copy.
  */
-export const CONFIG_TEMPLATE: ModlensConfig = {
+export const CONFIG_TEMPLATE: DeepseeConfig = {
     // Empty means the built-in default provider.
     provider: '',
     providers: {},
@@ -274,10 +373,10 @@ export function initConfigFile(configPath = CONFIG_PATH, force = false): void {
  * API keys masked and every value tagged with where it came from (file or env).
  *
  * Reading only the file misled anyone who set a key through GEMINI_API_KEY (or
- * the other bound vars): the value modlens actually uses never showed up.
+ * the other bound vars): the value deepsee actually uses never showed up.
  */
 export function renderEffectiveConfig(
-    config: ModlensConfig,
+    config: DeepseeConfig,
     env: NodeJS.ProcessEnv = process.env,
 ): string {
     const providerNames = new Set<string>(Object.keys(config.providers ?? {}));
@@ -286,13 +385,56 @@ export function renderEffectiveConfig(
             providerNames.add(providerName);
         }
     }
+    if (
+        normalizeApiKeys(env[GEMINI_API_KEYS_ENV]).length > 0 ||
+        normalizeApiKeys(env[GEMINI_API_KEY_ENV]).length > 0
+    ) {
+        providerNames.add('gemini-api');
+    }
 
     const providers: Record<string, Record<string, string>> = {};
     for (const name of [...providerNames].sort()) {
         const fileSettings = config.providers?.[name] ?? {};
-        const bindings = ENV_BINDINGS[name] ?? {};
+        const canonicalProviderName = providerAliases()[name] ?? name;
+        const bindings = ENV_BINDINGS[canonicalProviderName] ?? {};
         const fields: Record<string, string> = {};
+
+        if (canonicalProviderName === 'gemini-api') {
+            const envKeys = normalizeApiKeys(env[GEMINI_API_KEYS_ENV]);
+            const envLegacyKeys = normalizeApiKeys(env[GEMINI_API_KEY_ENV]);
+            const fileKeys = normalizeApiKeys(fileSettings.apiKeys);
+            const fileLegacyKeys = normalizeApiKeys(fileSettings.apiKey);
+            const keys =
+                envKeys.length > 0
+                    ? envKeys
+                    : envLegacyKeys.length > 0
+                      ? envLegacyKeys
+                      : fileKeys.length > 0
+                        ? fileKeys
+                        : fileLegacyKeys;
+            if (keys.length > 0) {
+                const source = envKeys.length > 0 || envLegacyKeys.length > 0 ? 'env' : 'file';
+                const usingPlural =
+                    envKeys.length > 0 || (envLegacyKeys.length === 0 && fileKeys.length > 0);
+                if (usingPlural) {
+                    // Do not render raw arrays: config show is intentionally
+                    // safe to paste into an issue. The count remains useful
+                    // without disclosing any key material.
+                    fields.apiKeys = `${keys.length} key${keys.length === 1 ? '' : 's'} (${source})`;
+                } else {
+                    // Preserve the legacy field's existing masked shape for
+                    // callers/tests that still inspect apiKey.
+                    fields.apiKey = `${maskKey(keys[0])} (${source})`;
+                }
+            }
+        }
+
         for (const field of STRING_FIELDS) {
+            // Gemini's key fields are resolved above so plural and legacy
+            // forms cannot both appear with conflicting effective values.
+            if (canonicalProviderName === 'gemini-api' && field === 'apiKey') {
+                continue;
+            }
             const envName = bindings[field];
             const envValue = envName ? env[envName]?.trim() : undefined;
             const value = envValue ?? fileSettings[field];

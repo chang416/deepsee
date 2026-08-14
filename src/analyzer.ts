@@ -5,7 +5,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { discoverAuto } from './auto/discover.ts';
 import { type AutoRouteOptions, reuseProviders } from './auto/routes.ts';
-import { loadConfigFile, type ModlensConfig, resolveProviderSettings } from './config.ts';
+import { type DeepseeConfig, loadConfigFile, resolveProviderSettings } from './config.ts';
 import { providerChain } from './providers/availability.ts';
 import {
     type ProviderFailureContext,
@@ -28,7 +28,7 @@ export interface AnalyzeOptions {
     workdir?: string;
     /** --extra-body: replaces the configured extraBody for this run. */
     extraBody?: Record<string, unknown>;
-    config?: ModlensConfig;
+    config?: DeepseeConfig;
     /** Auto-mode discovery overrides (home, env, discovery), mainly for tests. */
     autoOptions?: AutoRouteOptions;
 }
@@ -95,7 +95,7 @@ export async function analyzeImage(options: AnalyzeOptions): Promise<AnalyzeResu
           : composeChain(resolvedInput.kind, config, options.autoOptions);
     if (chain.length === 0) {
         throw new Error(
-            'No vision provider is set up on this machine. Install Antigravity CLI (curl -fsSL https://antigravity.google/cli/install.sh | bash, then run agy once to sign in), or configure a key: modlens config set gemini-api.apiKey <key>. Run modlens doctor for the full picture.' +
+            'No vision provider is set up on this machine. Install Antigravity CLI (curl -fsSL https://antigravity.google/cli/install.sh | bash, then run agy once to sign in), or configure a key: deepsee config set gemini-api.apiKey <key>. Run deepsee doctor for the full picture.' +
                 reuseHint(config, options.autoOptions),
         );
     }
@@ -204,7 +204,7 @@ const INLINE_REGION = new Set(['gemini-api', 'openai', 'anthropic']);
  */
 export function composeChain(
     kind: 'local' | 'remote',
-    config: ModlensConfig,
+    config: DeepseeConfig,
     autoOptions: AutoRouteOptions | undefined,
 ): VisionProvider[] {
     const chain = [...providerChain(kind, config, autoOptions?.env ?? process.env)];
@@ -254,7 +254,7 @@ const REUSE_KEY_BY_HARNESS: Record<string, 'codex' | 'opencode' | 'pi' | 'grok'>
  * borrowable vision the user was never asked about. A hint only: nothing is
  * enabled without an explicit grant.
  */
-function reuseHint(config: ModlensConfig, autoOptions: AutoRouteOptions | undefined): string {
+function reuseHint(config: DeepseeConfig, autoOptions: AutoRouteOptions | undefined): string {
     try {
         const grants = config.reuse ?? {};
         const discovery =
@@ -281,7 +281,7 @@ function reuseHint(config: ModlensConfig, autoOptions: AutoRouteOptions | undefi
         const parts: string[] = [];
         if (unasked.length > 0) {
             parts.push(
-                ` Hint: this machine has vision reachable through ${unasked.join(', ')}, which modlens is not yet allowed to reuse. Ask the user, then: modlens config set reuse.<harness> true.`,
+                ` Hint: this machine has vision reachable through ${unasked.join(', ')}, which deepsee is not yet allowed to reuse. Ask the user, then: deepsee config set reuse.<harness> true.`,
             );
         }
         if (dead.length > 0) {
@@ -302,7 +302,7 @@ async function runProvider(
     options: AnalyzeOptions,
     resolvedInput: ResolvedInput,
     timeoutMs: number,
-    config: ModlensConfig,
+    config: DeepseeConfig,
     warnings: string[],
 ): Promise<ProviderParsedOutput> {
     const configured = resolveProviderSettings(provider.name, config);
@@ -434,7 +434,7 @@ interface IsolatedImage {
  * of one removes that reach.
  */
 function isolateImage(source: string): IsolatedImage {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-work-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-work-'));
     const imageSource = path.join(workdir, path.basename(source));
     // Always a real copy, never a hardlink: a hardlink shares the inode, so a
     // provider writing to its temp path would mutate the user's original file.
@@ -453,7 +453,7 @@ function isolateImage(source: string): IsolatedImage {
  * injection in the image could read whatever project the user happens to be in.
  */
 function emptyWorkdir(): IsolatedImage {
-    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-work-'));
+    const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-work-'));
     return {
         workdir,
         cleanup: () => fs.rmSync(workdir, { recursive: true, force: true }),

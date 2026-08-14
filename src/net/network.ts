@@ -139,7 +139,7 @@ export async function assertSafeRemoteTarget(url: URL): Promise<PinnedTarget> {
 }
 
 function blockedMessage(target: string): string {
-    return `Blocked private or reserved image target: ${target}. modlens does not download from private addresses and upload the result to a vision provider. For a local or internal image, save it to a file and pass the path instead.`;
+    return `Blocked private or reserved image target: ${target}. deepsee does not download from private addresses and upload the result to a vision provider. For a local or internal image, save it to a file and pass the path instead.`;
 }
 
 function stripIpv6Brackets(hostname: string): string {

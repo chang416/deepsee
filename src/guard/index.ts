@@ -1,6 +1,6 @@
 // The invocation guard (issue #15): keep the vision engine from firing when
 // the active model already has native vision. Three signals feed the verdict,
-// strongest first: the MODLENS_MODEL env var (the user said so), session
+// strongest first: the DEEPSEE_MODEL env var (the user said so), session
 // storage (the transcript said so), then the caller's --model self-report
 // (the model said so, and a model can misname itself).
 import { detectHarnessDetailed } from '../recoverPaste/detect.ts';
@@ -30,16 +30,16 @@ export interface DetectModelOptions {
 
 export function detectActiveModel(options: DetectModelOptions): ModelDetection {
     const env = options.env ?? process.env;
-    const envModel = env.MODLENS_MODEL?.trim();
+    const envModel = env.DEEPSEE_MODEL?.trim();
     if (envModel) {
         return envModel.toLowerCase() === 'none'
             ? { model: null, source: 'env' }
             : { model: envModel, source: 'env' };
     }
-    // The MODLENS_HARNESS override comes from the env we were given, since
+    // The DEEPSEE_HARNESS override comes from the env we were given, since
     // detection itself only consults process.env. Set-but-empty means "not
     // forced", same as detect.ts reads it.
-    const forced = env.MODLENS_HARNESS;
+    const forced = env.DEEPSEE_HARNESS;
     const harness =
         forced === 'none'
             ? null

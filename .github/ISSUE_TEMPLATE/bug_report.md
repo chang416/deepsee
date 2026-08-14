@@ -6,7 +6,7 @@ labels: bug
 assignees: ''
 ---
 
-Before filing, check [docs/troubleshooting.md](../../docs/troubleshooting.md), which lists every message modlens prints with its cause and fix.
+Before filing, check [docs/troubleshooting.md](../../docs/troubleshooting.md), which lists DeepSee's diagnostics with likely causes and fixes. Search existing [issues](https://github.com/chang416/deepsee/issues) first.
 
 ## What happened
 
@@ -17,7 +17,7 @@ A clear description of the problem.
 Paste the full command, redacting only real API keys.
 
 ```bash
-modlens ...
+deepsee ...
 ```
 
 ## The full error
@@ -32,7 +32,7 @@ Paste the complete output, not a paraphrase. Include everything after `Blocked:`
 
 - Harness (Claude Code / Codex / Pi / OpenCode / plain terminal):
 - Provider (`-p`): 
-- `modlens --version`:
+- `deepsee --version`:
 - `node --version`:
 - OS:
 
@@ -44,4 +44,4 @@ What you expected instead.
 
 ---
 
-Not sure it is a bug, or just want to talk it through? Find me on X: [@liustack](https://x.com/liustack).
+If you are unsure whether this is a bug, open a [Discussion](https://github.com/chang416/deepsee/discussions) with the context and expected behavior.

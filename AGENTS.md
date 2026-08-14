@@ -2,16 +2,16 @@
 
 ## Goal
 
-Provide the `modlens` CLI tool that converts image sources (local path or remote URL) into structured text evidence for non-vision LLM workflows.
+Provide DeepSee: a CLI vision bridge and native DeepSeek Harness plugin that converts images into structured evidence, routes bounded coding work across DeepSeek lanes, and uses Gemini visual checks to catch rendered defects before delivery.
 
 ## Technical Approach
 
 - **Five vision providers behind one interface** (`src/providers/index.ts`). Subprocess providers implement `buildInvocation` + `parseOutput` (antigravity-cli, claude-cli); in-process API providers implement `execute` (gemini-api, openai, anthropic). `antigravity-cli` is the zero-config default.
 - **Schema-enforced JSON output** wherever the backend allows: `--json-schema` on the two CLIs, `responseJsonSchema` on gemini-api, a forced tool call on anthropic. The openai route uses a template-instance prompt (weak gateways echo raw schemas back) plus shape validation that fails loudly.
-- **Layered config**: CLI flags > env vars (`GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`) > `~/.modlens/config.json` (managed by `modlens config init/set/show`, 0600, masked rendering) > built-ins.
+- **Layered config**: CLI flags > env vars (`GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`) > `~/.deepsee/config.json` (managed by `deepsee config init/set/show`, 0600, masked rendering) > built-ins.
 - **Vendor knobs pass through, they are not modelled**: `<provider>.extraBody` (or `--extra-body`) deep-merges a JSON object into the request body of the three API providers, which is how thinking gets turned off. No per-vendor table lives in the code, because the spelling differs per gateway and a wrong guess either 400s or is ignored silently. The fields carrying the image, the prompt, and the schema are reserved (`src/util/extraBody.ts`).
-- **Paste recovery across harnesses**: `modlens recover-paste` pulls pasted image bytes out of local session storage (pastes never hit a regular temp file). It supports Claude Code and Pi (JSONL transcripts) and OpenCode (SQLite), detects Codex and defers to its on-disk temp files, and scopes to the harness it runs inside via process ancestry. Exact targeting via `--session`, else newest-image-timestamp scanning. Storage layouts are each harness's internals, so treat this as best-effort.
-- **Single responsibility**: visual parsing only. Web search and page fetching live in `modsearch`.
+- **Paste recovery across harnesses**: `deepsee recover-paste` pulls pasted image bytes out of local session storage (pastes never hit a regular temp file). It supports Claude Code and Pi (JSONL transcripts) and OpenCode (SQLite), detects Codex and defers to its on-disk temp files, and scopes to the harness it runs inside via process ancestry. Exact targeting via `--session`, else newest-image-timestamp scanning. Storage layouts are each harness's internals, so treat this as best-effort.
+- **Bounded responsibility**: visual evidence, DeepSeek-native task routing, and local rendered-output verification. Gemini never receives coding work; general web search and arbitrary browsing remain out of scope.
 
 ```bash
 pnpm install
@@ -45,7 +45,7 @@ Tests are co-located: modules get an adjacent `*.test.ts` (vitest), the CLI asse
 ## Skills Directory
 
 ```
-skills/modlens/
+skills/deepsee/
 ├── SKILL.md                    # triggering + per-harness path finding + workflow
 └── references/
     ├── output-schema.md        # output contract
@@ -55,11 +55,11 @@ skills/modlens/
 ## CLI Usage
 
 ```bash
-modlens -i screenshot.png                     # default provider (antigravity-cli)
-modlens -i screenshot.png -p gemini-api       # fastest free route (5-10s)
-modlens recover-paste --session <uuid>        # Claude Code pasted-image recovery
-modlens doctor                                # offline config/routing diagnosis (--json for machine output)
-modlens config show
+deepsee -i screenshot.png                     # default provider (antigravity-cli)
+deepsee -i screenshot.png -p gemini-api       # fastest free route (5-10s)
+deepsee recover-paste --session <uuid>        # Claude Code pasted-image recovery
+deepsee doctor                                # offline config/routing diagnosis (--json for machine output)
+deepsee config show
 ```
 
 ## Verification

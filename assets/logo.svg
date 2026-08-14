@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">DeepSee logo</title>
+  <desc id="desc">A code-bracket eye branching into two model-routing lanes.</desc>
+  <defs>
+    <linearGradient id="vision" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#62B8FF"/>
+      <stop offset="1" stop-color="#72E6FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#07090D"/>
+  <path d="M98 170 34 256l64 86" fill="none" stroke="#F3F7FB" stroke-linecap="square" stroke-width="34"/>
+  <path d="m246 170 64 86-64 86" fill="none" stroke="#F3F7FB" stroke-linecap="square" stroke-width="34"/>
+  <path d="M78 256c52-74 126-74 178 0-52 74-126 74-178 0Z" fill="url(#vision)"/>
+  <circle cx="167" cy="256" r="31" fill="#07090D"/>
+  <circle cx="167" cy="256" r="11" fill="#F3F7FB"/>
+  <path d="M306 222c56 0 62-67 116-67h35M306 290c56 0 62 67 116 67h35" fill="none" stroke="url(#vision)" stroke-linecap="round" stroke-width="18"/>
+  <circle cx="465" cy="155" r="18" fill="#62B8FF" stroke="#F3F7FB" stroke-width="7"/>
+  <circle cx="465" cy="357" r="18" fill="#72E6FF" stroke="#F3F7FB" stroke-width="7"/>
+</svg>

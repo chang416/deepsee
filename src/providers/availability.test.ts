@@ -13,7 +13,7 @@ afterEach(() => {
 
 /** A PATH containing the named fake binaries and nothing else. */
 function pathWith(...bins: string[]): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-avail-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-avail-'));
     dirs.push(dir);
     for (const bin of bins) {
         fs.writeFileSync(path.join(dir, bin), '#!/bin/sh\nexit 0\n', { mode: 0o755 });

@@ -24,7 +24,7 @@ export async function executeOpenaiCompat(
 
     if (!apiKey || !baseUrl || !model) {
         throw new Error(
-            'openai provider needs baseUrl, apiKey, and model. Set OPENAI_BASE_URL and OPENAI_API_KEY, or run: modlens config set openai.baseUrl <url> / openai.apiKey <key> / openai.model <name>',
+            'openai provider needs baseUrl, apiKey, and model. Set OPENAI_BASE_URL and OPENAI_API_KEY, or run: deepsee config set openai.baseUrl <url> / openai.apiKey <key> / openai.model <name>',
         );
     }
 

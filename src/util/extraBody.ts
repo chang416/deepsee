@@ -2,7 +2,7 @@
 // differently (thinking on/off is the loudest example: `thinking.type` here,
 // `reasoning_effort` there, `chat_template_kwargs.enable_thinking` on a
 // self-hosted vLLM, and strict clouds 400 on anything they do not know), so
-// modlens carries no per-vendor table. The user names the fields, modlens
+// deepsee carries no per-vendor table. The user names the fields, deepsee
 // merges them into the request it was going to send anyway.
 
 import { parseJsonOrExplain } from './json.ts';

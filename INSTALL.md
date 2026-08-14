@@ -1,6 +1,6 @@
-# Installing ModLens (for an AI agent)
+# Installing DeepSee (for an AI agent)
 
-You are an AI agent and your user told you to install the `modlens` skill. This
+You are an AI agent and your user told you to install the `deepsee` skill. This
 document is the procedure. Follow it in order. Every step is safe to run again,
 and every step names what to do when it fails. Commands are POSIX shell
 (macOS or Linux). A Windows note follows each block that needs one.
@@ -8,7 +8,7 @@ and every step names what to do when it fails. Commands are POSIX shell
 The whole install is four steps:
 
 1. Find the skill directory for your harness.
-2. Put the `skills/modlens` folder into it.
+2. Put the `skills/deepsee` folder into it.
 3. Give it one vision engine (the user may have prepared one already; probe first).
 4. Verify with `doctor`.
 
@@ -57,9 +57,9 @@ not a system path.
 
 ---
 
-## Step 2: Put `skills/modlens` into the skill directory
+## Step 2: Put `skills/deepsee` into the skill directory
 
-The skill is the `skills/modlens` folder in this repository: a `SKILL.md`, a
+The skill is the `skills/deepsee` folder in this repository: a `SKILL.md`, a
 `references/` directory, and a `scripts/` directory with the launcher. Copy the
 whole folder into `TARGET`. There are two equivalent ways. Use path A unless the
 user asked for the skills CLI.
@@ -67,10 +67,10 @@ user asked for the skills CLI.
 ### Path A: clone and copy (no extra tooling)
 
 ```bash
-rm -rf /tmp/modlens-src
-git clone --depth 1 https://github.com/liustack/modlens.git /tmp/modlens-src
-mkdir -p ~/.claude/skills/modlens          # replace with your TARGET
-cp -R /tmp/modlens-src/skills/modlens/. ~/.claude/skills/modlens/
+rm -rf /tmp/deepsee-src
+git clone --depth 1 https://github.com/chang416/deepsee.git /tmp/deepsee-src
+mkdir -p ~/.claude/skills/deepsee          # replace with your TARGET
+cp -R /tmp/deepsee-src/skills/deepsee/. ~/.claude/skills/deepsee/
 ```
 
 The copy overwrites any earlier install in place, so running it again just
@@ -81,7 +81,7 @@ refreshes the skill.
 - Clone cannot reach GitHub -> check network access, then retry.
 - After copying, confirm the skill and its launcher landed:
   ```bash
-  ls ~/.claude/skills/modlens/SKILL.md ~/.claude/skills/modlens/scripts/run.sh ~/.claude/skills/modlens/references
+  ls ~/.claude/skills/deepsee/SKILL.md ~/.claude/skills/deepsee/scripts/run.sh ~/.claude/skills/deepsee/references
   ```
   If `SKILL.md` or `scripts/run.sh` is missing, the copy targeted the wrong path.
   Re-run the `cp` line and check `TARGET`.
@@ -91,25 +91,25 @@ refreshes the skill.
 `skills` is a third-party CLI for installing agent skills. It is not required.
 
 ```bash
-npx -y skills add liustack/modlens
+npx -y skills add chang416/deepsee
 ```
 
 **If it fails** (the command is unavailable, or it does not place the folder under
 your harness's skill directory): fall back to Path A, which needs only git.
 
 > **Windows:** in PowerShell, replace the `cp -R` line with
-> `Copy-Item -Recurse -Force "$env:TEMP\modlens-src\skills\modlens\*" "$env:USERPROFILE\.claude\skills\modlens\"`
-> and clone into `"$env:TEMP\modlens-src"`.
+> `Copy-Item -Recurse -Force "$env:TEMP\deepsee-src\skills\deepsee\*" "$env:USERPROFILE\.claude\skills\deepsee\"`
+> and clone into `"$env:TEMP\deepsee-src"`.
 
 ---
 
 ## Step 3: Give it one vision engine
 
-ModLens needs exactly one working vision engine, and the machine often already
+DeepSee needs exactly one working vision engine, and the machine often already
 has one, so always check before setting anything up:
 
 ```bash
-bash ~/.claude/skills/modlens/scripts/run.sh doctor   # replace with your TARGET
+bash ~/.claude/skills/deepsee/scripts/run.sh doctor   # replace with your TARGET
 ```
 
 Read two sections of the report: the providers and the Reuse section.
@@ -130,11 +130,11 @@ could read images: the harness you are installing into counts too (a signed-in
 Codex, an OpenCode vision model, credentials held by pi). For each entry marked
 `not asked` that has vision, ask the user one question, naming the harness and
 whose quota it spends, for example: "Your Codex CLI is signed in and its model
-reads images. Allow modlens to reuse it when needed? Every reused read is
+reads images. Allow deepsee to reuse it when needed? Every reused read is
 labeled with whose quota it spent." Record each answer, yes or no:
 
 ```bash
-bash ~/.claude/skills/modlens/scripts/run.sh config set reuse.codex true    # or false
+bash ~/.claude/skills/deepsee/scripts/run.sh config set reuse.codex true    # or false
 ```
 
 A refusal recorded is a question never asked again. Skip what the user skips.
@@ -148,13 +148,13 @@ an OpenAI-compatible endpoint, use Path 3.
 Run both commands through the launcher (replace the path with your `TARGET`):
 
 ```bash
-bash ~/.claude/skills/modlens/scripts/run.sh config set gemini-api.apiKey <KEY>
-bash ~/.claude/skills/modlens/scripts/run.sh config set provider gemini-api
+bash ~/.claude/skills/deepsee/scripts/run.sh config set gemini-api.apiKey <KEY>
+bash ~/.claude/skills/deepsee/scripts/run.sh config set provider gemini-api
 ```
 
 If you do not have a key, ask the user for one: a free key takes about three
 minutes at [Google AI Studio](https://aistudio.google.com), no card required.
-The key is written to `~/.modlens/config.json` with `0600` permissions, and
+The key is written to `~/.deepsee/config.json` with `0600` permissions, and
 re-running the commands overwrites the value in place.
 
 ### Path 2: Antigravity CLI (no key; needs the user's browser sign-in)
@@ -200,7 +200,7 @@ those machines use Path 1 instead. Handle it in three idempotent steps:
    ```
 
 **If it fails:**
-- A `config set` write error -> `~/.modlens/config.json` is not writable by this
+- A `config set` write error -> `~/.deepsee/config.json` is not writable by this
   process. Confirm the home directory is writable.
 - `agy: command not found` after the installer -> the install did not add `agy`
   to this shell's PATH. Open a new shell, or have the user do so, then re-run.
@@ -214,10 +214,10 @@ those machines use Path 1 instead. Handle it in three idempotent steps:
 ### Path 3: An OpenAI-compatible endpoint the user already has
 
 ```bash
-bash ~/.claude/skills/modlens/scripts/run.sh config set openai.baseUrl <url>
-bash ~/.claude/skills/modlens/scripts/run.sh config set openai.apiKey <key>
-bash ~/.claude/skills/modlens/scripts/run.sh config set openai.model <model>
-bash ~/.claude/skills/modlens/scripts/run.sh config set provider openai
+bash ~/.claude/skills/deepsee/scripts/run.sh config set openai.baseUrl <url>
+bash ~/.claude/skills/deepsee/scripts/run.sh config set openai.apiKey <key>
+bash ~/.claude/skills/deepsee/scripts/run.sh config set openai.model <model>
+bash ~/.claude/skills/deepsee/scripts/run.sh config set provider openai
 ```
 
 All three fields are required, and the model must accept image input (a
@@ -233,12 +233,12 @@ where the launcher resolves to npx or bunx, the first call may download the
 pinned package; that is how those runners work.)
 
 ```bash
-bash ~/.claude/skills/modlens/scripts/run.sh doctor   # replace with your TARGET
+bash ~/.claude/skills/deepsee/scripts/run.sh doctor   # replace with your TARGET
 ```
 
-The launcher prints its runtime selection first (whether it chose a `modlens`
-on PATH, `npx`, or `bunx`), then chains modlens's own report below a
-`--- modlens doctor ---` line. A healthy result for the recommended Gemini setup
+The launcher prints its runtime selection first (whether it chose a `deepsee`
+on PATH, `npx`, or `bunx`), then chains deepsee's own report below a
+`--- deepsee doctor ---` line. A healthy result for the recommended Gemini setup
 looks like this (trimmed):
 
 ```
@@ -268,10 +268,10 @@ Add `--json` for a machine-readable report you can parse directly.
 
 **If it fails:**
 - The launcher printed a JSON diagnosis and exited 78 -> no runtime could run
-  modlens: no compatible `modlens` on PATH, no `npx`, and no `bunx`. Read the
+  deepsee: no compatible `deepsee` on PATH, no `npx`, and no `bunx`. Read the
   `nextSteps` field in that JSON and relay it. The manual fix is to install
   Node 22.19+ (https://nodejs.org) or Bun (https://bun.sh), then re-run this
-  step. Do not report modlens as broken.
+  step. Do not report deepsee as broken.
 - Any other message -> it is catalogued with its cause and fix in
   [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
@@ -281,7 +281,7 @@ end to end, run the launcher on any local image (this one call does use the
 engine, so it spends one read):
 
 ```bash
-bash ~/.claude/skills/modlens/scripts/run.sh -i <path-to-image>
+bash ~/.claude/skills/deepsee/scripts/run.sh -i <path-to-image>
 ```
 
 ---
@@ -291,4 +291,4 @@ bash ~/.claude/skills/modlens/scripts/run.sh -i <path-to-image>
 The skill is installed and a vision engine is ready. From now on you do not type
 these commands by hand: the skill triggers on its own when an image needs
 reading. To change engines or add a key later, see
-[`skills/modlens/references/configure.md`](skills/modlens/references/configure.md).
+[`skills/deepsee/references/configure.md`](skills/deepsee/references/configure.md).

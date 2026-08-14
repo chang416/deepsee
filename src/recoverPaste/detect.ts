@@ -73,7 +73,7 @@ export interface HarnessDetection {
 }
 
 export function detectHarnessDetailed(): HarnessDetection {
-    const override = process.env.MODLENS_HARNESS;
+    const override = process.env.DEEPSEE_HARNESS;
     if (override) {
         return { harness: override === 'none' ? null : override, source: 'override' };
     }

@@ -1,5 +1,5 @@
 ---
-summary: '安全：modlens 会运行什么、恢复出的图片如何受保护、图片内容属于不可信输入'
+summary: '安全：deepsee 会运行什么、恢复出的图片如何受保护、图片内容属于不可信输入'
 read_when:
   - 审查这个工具会在你的机器上做什么
   - 在共享机器上恢复粘贴的图片
@@ -12,13 +12,21 @@ read_when:
 
 ## 恢复出的图片是私有的
 
-从会话存储里取出的图片以 0600 权限写入 0700 目录。默认这个目录是每次运行新建的、不可预测的 `<tmpdir>/modlens-paste-*`，共享机器上没人能预先创建一个已知路径来读取字节（`recursive` 的 mkdir 不会改动已存在目录的权限模式）。一张粘贴的截图里可能有任何东西。显式传入的 `--out-dir` 会被接受，但不安全时会被拒绝：它必须是真实目录，不是符号链接，归你所有，组和其他用户无任何权限。
+从会话存储里取出的图片以 0600 权限写入 0700 目录。默认这个目录是每次运行新建的、不可预测的 `<tmpdir>/deepsee-paste-*`，共享机器上没人能预先创建一个已知路径来读取字节（`recursive` 的 mkdir 不会改动已存在目录的权限模式）。一张粘贴的截图里可能有任何东西。显式传入的 `--out-dir` 会被接受，但不安全时会被拒绝：它必须是真实目录，不是符号链接，归你所有，组和其他用户无任何权限。
 
 恢复同样限定在单个项目内：检查的是 transcript 里记录的工作目录，不只是目录名，因为目录 slug 会撞车（`/tmp/a.b` 和 `/tmp/a-b` 生成同一个 slug）。相邻项目的图片绝不会被交出去。
 
+## 设置与 API key
+
+DeepSee 的 dsh 设置面板写入 `~/.deepsee/config.json`，文件以 0600 权限建立。可以保存多把 Gemini key，但设置 GET 接口只返回 `keyCount`；已保存的 key 不会送回浏览器，也不会出现在 `config show`。写入接口只接受 JSON，并拒绝跨来源的浏览器请求，降低其他网页通过本机回环服务器修改设置的风险。
+
+Gemini key 只供视觉 provider 使用。Auto 与 Customize 会把写程式子任务强制放到当前可用的 DeepSeek provider 路线上，不会把 Gemini 凭据传给 coding child。provider 报错在对外显示前，会用全部已配置 Gemini key 做遮罩。
+
+视觉自检会强制使用 `gemini-api`。最初输入的预览网址必须是不含帐号密码的本机回环 HTTP(S)；Chrome／Chromium／Edge 每次使用没有既有登入状态的全新临时资料夹，也不会加入关闭浏览器沙箱、网页安全或来源检查的参数。本机页面仍可依一般浏览器规则载入资源或跳转，因此只应指向你信任的开发服务器。使用者资料夹会在截屏后删除；截图本身保留在回报的临时路径，方便用户核对 Gemini 实际审查的成品。图片上限 25 MiB，完全相同的检查只在当前程序记忆体中复用。
+
 ## 传给引擎的权限
 
-ModLens 调用 `agy` 时带上 `--dangerously-skip-permissions`，因为某些环境下 prompt 模式不带它就会失败。prompt 把 agent 限制为只读交给它的那一张图片，并指示它把图片内容严格当作数据。
+DeepSee 调用 `agy` 时带上 `--dangerously-skip-permissions`，因为某些环境下 prompt 模式不带它就会失败。prompt 把 agent 限制为只读交给它的那一张图片，并指示它把图片内容严格当作数据。
 
 `claude-cli` provider 只带 `--allowedTools Read` 运行，因此它能读本地文件，别的什么都做不了。
 
@@ -28,11 +36,11 @@ ModLens 调用 `agy` 时带上 `--dangerously-skip-permissions`，因为某些�
 
 | Provider | 远程 URL 由谁抓取 | 本地防护 |
 | :-- | :-- | :-- |
-| `gemini-api` | modlens 自己下载，字节内联发送 | 私有地址防护、文件头魔数（magic bytes）检查、25 MB 上限 |
+| `gemini-api` | deepsee 自己下载，字节内联发送 | 私有地址防护、文件头魔数（magic bytes）检查、25 MB 上限 |
 | `openai`、`anthropic` | URL 传给厂商，由厂商抓取 | 本地无，适用厂商自己的抓取策略 |
 | `antigravity-cli`、agent CLI | agent 自行抓取 | 本地无 |
 
-所以私有地址防护、文件头魔数检查和大小上限保护的恰好是 modlens 亲自下载的路径：每一次本地文件读取，加上 gemini-api 的远程抓取。显式 `-p` 钉死单个 provider，覆盖整条链。
+所以私有地址防护、文件头魔数检查和大小上限保护的恰好是 deepsee 亲自下载的路径：每一次本地文件读取，加上 gemini-api 的远程抓取。显式 `-p` 钉死单个 provider，覆盖整条链。
 
 ## 图片内容是不可信输入
 

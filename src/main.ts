@@ -30,7 +30,7 @@ function parsePositiveInt(raw: string, flag: string): number {
 }
 
 program
-    .name('modlens')
+    .name('deepsee')
     .description('Plug-in vision for text-only LLMs: image in, structured JSON evidence out')
     .version(__APP_VERSION__);
 
@@ -54,12 +54,12 @@ program
             const timeoutMs = parsePositiveInt(options.timeout, '--timeout (milliseconds)');
 
             // Hard gate before any provider work, fed only by the explicit
-            // MODLENS_MODEL env var and only when that model is identified:
+            // DEEPSEE_MODEL env var and only when that model is identified:
             // a deny-pattern match or an allowlist exclusion blocks the read,
             // while storage sniffing and the denyWhenUnknown policy stay
-            // advisory in `modlens guard`, where a wrong guess cannot block.
+            // advisory in `deepsee guard`, where a wrong guess cannot block.
             const config = loadConfigFile();
-            if (process.env.MODLENS_MODEL?.trim()) {
+            if (process.env.DEEPSEE_MODEL?.trim()) {
                 const verdict = runGuard(config.guards, {
                     cwd: process.cwd(),
                     env: process.env,
@@ -70,7 +70,7 @@ program
                         : 'is not on guards.allowModels, which only lets listed models run the engine.';
                     throw new Error(
                         `Invocation guard denied this read: active model "${verdict.model}" ${cause} ` +
-                            `To override, unset MODLENS_MODEL or edit guards in ${CONFIG_PATH}.`,
+                            `To override, unset DEEPSEE_MODEL or edit guards in ${CONFIG_PATH}.`,
                     );
                 }
             }
@@ -214,9 +214,9 @@ config
                 [
                     `Created ${CONFIG_PATH}`,
                     'Everything is optional. Two things you can set:',
-                    '  modlens config set provider <name>                      which provider analyzes images',
-                    '  modlens config set <provider>.<apiKey|baseUrl|model> <value>   provider credentials',
-                    '  modlens config set <provider>.extraBody \'{"thinking":{"type":"disabled"}}\'   vendor request fields',
+                    '  deepsee config set provider <name>                      which provider analyzes images',
+                    '  deepsee config set <provider>.<apiKey|baseUrl|model> <value>   provider credentials',
+                    '  deepsee config set <provider>.extraBody \'{"thinking":{"type":"disabled"}}\'   vendor request fields',
                     '',
                 ].join('\n'),
             );
@@ -230,7 +230,7 @@ config
 
 config
     .command('set <key> <value>')
-    .description('Set a value, e.g. modlens config set gemini-api.apiKey <key>')
+    .description('Set a value, e.g. deepsee config set gemini-api.apiKey <key>')
     .action((key: string, value: string) => {
         try {
             setConfigValue(key, value);

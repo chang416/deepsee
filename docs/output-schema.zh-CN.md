@@ -1,11 +1,11 @@
 ---
 summary: '输出契约：每次识别返回的 JSON 结构、result 字段与 meta'
 read_when:
-  - 解析 modlens 输出或在它之上构建工具
+  - 解析 deepsee 输出或在它之上构建工具
   - 查 meta.attempts 和 meta.warnings 的含义
 ---
 
-# ModLens 输出契约（v2）
+# DeepSee 输出契约（v2）
 
 [English](output-schema.md) | 中文
 

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <rect width="1600" height="1000" fill="#050914"/>
+  <rect x="50" y="42" width="1500" height="916" rx="26" fill="#0b1220" stroke="#26344d" stroke-width="2"/>
+  <circle cx="92" cy="84" r="9" fill="#ff6b6b"/><circle cx="120" cy="84" r="9" fill="#ffd166"/><circle cx="148" cy="84" r="9" fill="#41d68b"/>
+  <text x="196" y="94" fill="#c9d6ea" font-family="Arial, sans-serif" font-size="26" font-weight="700">DeepSee Settings</text>
+  <rect x="86" y="132" width="416" height="780" rx="20" fill="#08101d"/>
+  <text x="120" y="188" fill="#f4f8ff" font-family="Arial, sans-serif" font-size="28" font-weight="700">MODEL ROUTING</text>
+  <text x="120" y="236" fill="#8fa5c2" font-family="Arial, sans-serif" font-size="21">Coding model</text>
+  <rect x="120" y="256" width="348" height="62" rx="14" fill="#11223a" stroke="#4ba4ff"/>
+  <text x="146" y="296" fill="#f4f8ff" font-family="Arial, sans-serif" font-size="23">DeepSee Auto</text>
+  <text x="120" y="370" fill="#8fa5c2" font-family="Arial, sans-serif" font-size="21">Vision provider</text>
+  <rect x="120" y="390" width="348" height="62" rx="14" fill="#11223a"/>
+  <text x="146" y="430" fill="#f4f8ff" font-family="Arial, sans-serif" font-size="23">Gemini Flash Latest</text>
+  <text x="120" y="506" fill="#8fa5c2" font-family="Arial, sans-serif" font-size="21">Gemini API keys</text>
+  <rect x="120" y="528" width="348" height="144" rx="14" fill="#07101c" stroke="#263b59"/>
+  <text x="146" y="568" fill="#6f86a5" font-family="monospace" font-size="19">••••••••••••a91</text><text x="146" y="606" fill="#6f86a5" font-family="monospace" font-size="19">••••••••••••b72</text><text x="146" y="644" fill="#6f86a5" font-family="monospace" font-size="19">2 keys ready · rotate on quota</text>
+  <rect x="120" y="724" width="348" height="64" rx="16" fill="#b8ff4b"/>
+  <text x="294" y="765" text-anchor="middle" fill="#07110c" font-family="Arial, sans-serif" font-size="24" font-weight="700">SAVE SETTINGS</text>
+  <text x="120" y="844" fill="#7f94b2" font-family="Arial, sans-serif" font-size="18">DeepSeek writes code.</text><text x="120" y="874" fill="#7f94b2" font-family="Arial, sans-serif" font-size="18">Gemini only reads images.</text>
+  <text x="550" y="188" fill="#f4f8ff" font-family="Arial, sans-serif" font-size="32" font-weight="700">Live task route</text>
+  <rect x="550" y="222" width="930" height="176" rx="20" fill="#08101d"/>
+  <text x="590" y="272" fill="#8fa5c2" font-family="Arial, sans-serif" font-size="20">USER ATTACHMENT</text>
+  <text x="590" y="316" fill="#f4f8ff" font-family="Arial, sans-serif" font-size="27">checkout-reference.png</text>
+  <text x="590" y="356" fill="#29e8c5" font-family="Arial, sans-serif" font-size="21">Gemini Vision extracted 14 regions and 37 text lines</text>
+  <rect x="550" y="430" width="446" height="210" rx="20" fill="#0c1728" stroke="#4ba4ff"/>
+  <text x="584" y="482" fill="#4ba4ff" font-family="Arial, sans-serif" font-size="22" font-weight="700">FLASH · implementation</text>
+  <text x="584" y="528" fill="#d8e4f4" font-family="Arial, sans-serif" font-size="22">Build the responsive layout</text><text x="584" y="566" fill="#d8e4f4" font-family="Arial, sans-serif" font-size="22">Wire interaction states</text><text x="584" y="604" fill="#8fa5c2" font-family="Arial, sans-serif" font-size="19">Status: complete in 18.4s</text>
+  <rect x="1034" y="430" width="446" height="210" rx="20" fill="#0c1728" stroke="#9d7cff"/>
+  <text x="1068" y="482" fill="#b295ff" font-family="Arial, sans-serif" font-size="22" font-weight="700">PRO · review</text>
+  <text x="1068" y="528" fill="#d8e4f4" font-family="Arial, sans-serif" font-size="22">Check architecture and edge cases</text><text x="1068" y="566" fill="#d8e4f4" font-family="Arial, sans-serif" font-size="22">Integrate final patch</text><text x="1068" y="604" fill="#8fa5c2" font-family="Arial, sans-serif" font-size="19">Status: complete in 31.8s</text>
+  <rect x="550" y="676" width="930" height="170" rx="20" fill="#0b1d19" stroke="#b8ff4b" stroke-width="2"/>
+  <text x="590" y="730" fill="#b8ff4b" font-family="Arial, sans-serif" font-size="23" font-weight="700">VISUAL CHECK · PASS</text>
+  <text x="590" y="776" fill="#e7f4ee" font-family="Arial, sans-serif" font-size="24">Rendered UI matches the reference hierarchy and spacing.</text>
+  <text x="590" y="816" fill="#87a899" font-family="Arial, sans-serif" font-size="19">Checked at 1440 × 900 · no blocking defects</text>
+  <text x="550" y="902" fill="#6f86a5" font-family="Arial, sans-serif" font-size="18">DeepSee · Vision + Model Routing for DeepSeek Harness</text>
+</svg>

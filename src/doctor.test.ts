@@ -7,7 +7,7 @@ import { buildDoctorReport, renderDoctorReport } from './doctor.ts';
 // A PATH pointing at a directory holding a fake executable, so binary detection
 // is deterministic instead of depending on what the test machine has installed.
 function pathWith(bins: string[]): { dir: string; PATH: string } {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-bin-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-bin-'));
     for (const bin of bins) {
         const full = path.join(dir, bin);
         fs.writeFileSync(full, '#!/bin/sh\n', { mode: 0o755 });
@@ -17,15 +17,15 @@ function pathWith(bins: string[]): { dir: string; PATH: string } {
 
 // The suite runs inside a real harness; force a deterministic verdict.
 function withForcedHarness<T>(value: string, run: () => T): T {
-    const prev = process.env.MODLENS_HARNESS;
-    process.env.MODLENS_HARNESS = value;
+    const prev = process.env.DEEPSEE_HARNESS;
+    process.env.DEEPSEE_HARNESS = value;
     try {
         return run();
     } finally {
         if (prev === undefined) {
-            delete process.env.MODLENS_HARNESS;
+            delete process.env.DEEPSEE_HARNESS;
         } else {
-            process.env.MODLENS_HARNESS = prev;
+            process.env.DEEPSEE_HARNESS = prev;
         }
     }
 }
@@ -82,6 +82,13 @@ describe('buildDoctorReport: provider readiness', () => {
         const gemini = providerNamed(report, 'gemini-api');
         expect(gemini.ready).toBe(true);
         expect(gemini.status).toBe('ready');
+        expect(gemini.settings?.[0]).toMatchObject({ field: 'apiKey', source: 'env' });
+    });
+
+    it('reports plural Gemini keys as environment-backed readiness', () => {
+        const report = buildDoctorReport({ config: {}, env: { GEMINI_API_KEYS: 'one\ntwo' } });
+        const gemini = providerNamed(report, 'gemini-api');
+        expect(gemini.ready).toBe(true);
         expect(gemini.settings?.[0]).toMatchObject({ field: 'apiKey', source: 'env' });
     });
 
@@ -159,7 +166,7 @@ describe('buildDoctorReport: config file permissions', () => {
     it.skipIf(process.platform === 'win32')(
         'accepts a 0600 config and flags a group/world-readable one',
         () => {
-            const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cfg-'));
+            const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cfg-'));
             try {
                 const locked = path.join(dir, 'locked.json');
                 fs.writeFileSync(locked, '{}', { mode: 0o600 });
@@ -187,7 +194,7 @@ describe('buildDoctorReport: config file permissions', () => {
         const report = buildDoctorReport({
             config: {},
             env: {},
-            configPath: path.join(os.tmpdir(), 'modlens-does-not-exist-xyz', 'config.json'),
+            configPath: path.join(os.tmpdir(), 'deepsee-does-not-exist-xyz', 'config.json'),
         });
         expect(report.config).toMatchObject({ exists: false, permissionsOk: true });
     });
@@ -197,7 +204,7 @@ describe('buildDoctorReport: guard', () => {
     it('evaluates the guard on the spot so "why did it skip" answers itself', () => {
         const report = buildDoctorReport({
             config: { guards: { denyModels: ['gpt-5.6*'] } },
-            env: { MODLENS_MODEL: 'gpt-5.6-sol', MODLENS_HARNESS: 'none' },
+            env: { DEEPSEE_MODEL: 'gpt-5.6-sol', DEEPSEE_HARNESS: 'none' },
         });
         expect(report.guard).toMatchObject({
             rules: 1,
@@ -212,7 +219,7 @@ describe('buildDoctorReport: guard', () => {
     it('reports no rules as an allow with zero rules', () => {
         const report = buildDoctorReport({
             config: {},
-            env: { MODLENS_HARNESS: 'none' },
+            env: { DEEPSEE_HARNESS: 'none' },
         });
         expect(report.guard).toMatchObject({ rules: 0, verdict: 'allow' });
     });
@@ -220,7 +227,7 @@ describe('buildDoctorReport: guard', () => {
     it('renders a Guard section', () => {
         const report = buildDoctorReport({
             config: { guards: { denyModels: ['gpt-5.6*'] } },
-            env: { MODLENS_MODEL: 'gpt-5.6-sol', MODLENS_HARNESS: 'none' },
+            env: { DEEPSEE_MODEL: 'gpt-5.6-sol', DEEPSEE_HARNESS: 'none' },
         });
         const rendered = renderDoctorReport(report);
         expect(rendered).toContain('Guard');
@@ -231,10 +238,10 @@ describe('buildDoctorReport: guard', () => {
 
 describe('buildDoctorReport: reuse', () => {
     it('probes the four harnesses fresh and maps grant decisions with defaults', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-doctor-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-doctor-home-'));
         const report = buildDoctorReport({
             config: { reuse: { codex: true, pi: false } },
-            env: { PATH: '', MODLENS_HARNESS: 'none' },
+            env: { PATH: '', DEEPSEE_HARNESS: 'none' },
             auto: { home },
         });
         expect(report.reuse.decisions).toEqual({
@@ -256,10 +263,10 @@ describe('buildDoctorReport: reuse', () => {
     });
 
     it('renders a Reuse section with decisions and per-harness lines', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-doctor-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-doctor-home-'));
         const report = buildDoctorReport({
             config: {},
-            env: { PATH: '', MODLENS_HARNESS: 'none' },
+            env: { PATH: '', DEEPSEE_HARNESS: 'none' },
             auto: { home },
         });
         const rendered = renderDoctorReport(report);

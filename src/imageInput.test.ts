@@ -108,7 +108,7 @@ describe('readLocalImageBase64', () => {
         }
     });
     function tmpFile(name: string, bytes: Buffer): string {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-img-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-img-'));
         dirs.push(dir);
         const file = path.join(dir, name);
         fs.writeFileSync(file, bytes);

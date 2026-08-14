@@ -1,13 +1,13 @@
 ---
 summary: 'Research Notes: Gemini CLI invocation mechanics + Claude Code skills model'
 read_when:
-  - Designing or updating ModLens runtime behavior
+  - Designing or updating DeepSee runtime behavior
   - Updating skill metadata/trigger strategy
   - Verifying compatibility with Claude Code and Gemini CLI
 ---
 
 > **HISTORICAL.** Written in the Gemini CLI era, before that free tier was shut
-> down in June 2026 and ModLens moved to Antigravity CLI. Kept for the reasoning
+> down in June 2026 and DeepSee moved to Antigravity CLI. Kept for the reasoning
 > behind the skill-trigger design. For how things work now, read the README and
 > `troubleshooting.md`.
 
@@ -35,8 +35,8 @@ Implementation decision:
 - Skills can be project-level and chained by the agent when descriptions match user intent.
 
 Implementation decision:
-- `skills/modlens/SKILL.md` uses explicit trigger description for image tasks + non-vision model scenarios.
-- `allowed-tools: Bash` is set so the agent can deterministically call `modlens`.
+- `skills/deepsee/SKILL.md` uses explicit trigger description for image tasks + non-vision model scenarios.
+- `allowed-tools: Bash` is set so the agent can deterministically call `deepsee`.
 - Scope is intentionally limited to image parsing; no modsearch/modfetch logic is included.
 
 ## 3) Primary Sources

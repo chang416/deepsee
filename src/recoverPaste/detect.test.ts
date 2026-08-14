@@ -9,8 +9,8 @@ describe('harness detection (process ancestry)', () => {
     it('finds the nearest harness ancestor by executable basename', () => {
         const ps = psTable([
             [100, 1, '/usr/local/bin/node --no-warnings /Users/x/.claude/local/claude'],
-            [200, 100, '/bin/zsh -c modlens'],
-            [300, 200, 'node /Users/x/projects/modlens/dist/main.js recover-paste'],
+            [200, 100, '/bin/zsh -c deepsee'],
+            [300, 200, 'node /Users/x/projects/deepsee/dist/main.js recover-paste'],
         ]);
         expect(harnessFromPsTable(ps, 300)).toBe('claude-code');
     });
@@ -21,8 +21,8 @@ describe('harness detection (process ancestry)', () => {
             [100, 1, 'node /Users/x/.claude/local/claude'],
             [200, 100, '/bin/zsh -c "opencode run ..."'],
             [300, 200, '/Users/x/.cache/opencode/bin/opencode run analyze'],
-            [400, 300, '/bin/sh -c modlens'],
-            [500, 400, 'node /Users/x/modlens/dist/main.js recover-paste'],
+            [400, 300, '/bin/sh -c deepsee'],
+            [500, 400, 'node /Users/x/deepsee/dist/main.js recover-paste'],
         ]);
         expect(harnessFromPsTable(ps, 500)).toBe('opencode');
     });

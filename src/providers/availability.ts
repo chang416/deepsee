@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-    type ModlensConfig,
+    type DeepseeConfig,
     type ProviderStringField,
     resolveProviderSettings,
 } from '../config.ts';
@@ -44,7 +44,7 @@ export const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
         name: 'gemini-api',
         kind: 'api',
         required: [{ field: 'apiKey', env: 'GEMINI_API_KEY' }],
-        fix: 'modlens config set gemini-api.apiKey <key>   # free key: https://aistudio.google.com',
+        fix: 'deepsee config set gemini-api.apiKey <key>   # free key: https://aistudio.google.com',
     },
     {
         name: 'openai',
@@ -54,13 +54,13 @@ export const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
             { field: 'apiKey', env: 'OPENAI_API_KEY' },
             { field: 'model' },
         ],
-        fix: 'modlens config set openai.baseUrl <url> / openai.apiKey <key> / openai.model <name>',
+        fix: 'deepsee config set openai.baseUrl <url> / openai.apiKey <key> / openai.model <name>',
     },
     {
         name: 'anthropic',
         kind: 'api',
         required: [{ field: 'apiKey', env: 'ANTHROPIC_API_KEY' }],
-        fix: 'modlens config set anthropic.apiKey <key>',
+        fix: 'deepsee config set anthropic.apiKey <key>',
     },
     {
         name: 'claude-cli',
@@ -102,7 +102,7 @@ export function findOnPath(bin: string, env: NodeJS.ProcessEnv): string | null {
 /** Whether a provider's prerequisites are on this machine right now. */
 export function providerAvailable(
     name: string,
-    config: ModlensConfig,
+    config: DeepseeConfig,
     env: NodeJS.ProcessEnv = process.env,
 ): boolean {
     const descriptor = PROVIDER_DESCRIPTORS.find((d) => d.name === name);
@@ -141,7 +141,7 @@ const REMOTE_FAILOVER_ORDER = ['gemini-api', 'openai', 'anthropic', 'antigravity
  */
 export function providerChain(
     kind: 'local' | 'remote',
-    config: ModlensConfig,
+    config: DeepseeConfig,
     env: NodeJS.ProcessEnv = process.env,
 ): VisionProvider[] {
     let names: string[] = [...(kind === 'remote' ? REMOTE_FAILOVER_ORDER : LOCAL_FAILOVER_ORDER)];

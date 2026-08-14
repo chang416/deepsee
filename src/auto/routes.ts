@@ -15,7 +15,7 @@ import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import type { ModlensConfig } from '../config.ts';
+import type { DeepseeConfig } from '../config.ts';
 import { buildVisionPrompt, JSON_TEMPLATE_INSTRUCTION } from '../prompt.ts';
 import { anthropicApiProvider } from '../providers/anthropicApi.ts';
 import { findOnPath } from '../providers/availability.ts';
@@ -526,7 +526,7 @@ export interface ReusedRoutes {
  */
 export function reuseProviders(
     kind: 'local' | 'remote',
-    config: ModlensConfig,
+    config: DeepseeConfig,
     options: AutoRouteOptions = {},
 ): ReusedRoutes {
     const env = options.env ?? process.env;

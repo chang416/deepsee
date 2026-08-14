@@ -53,7 +53,7 @@ describe('analyze argument validation', () => {
     });
 
     it('rejects a non-numeric --timeout before doing any work', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cli-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cli-'));
         const file = path.join(dir, 'x.png');
         fs.writeFileSync(file, Buffer.from('bytes'));
         const { code, stderr } = run(['-i', file, '--timeout', 'abc']);
@@ -63,7 +63,7 @@ describe('analyze argument validation', () => {
     });
 
     it('rejects an unsupported provider', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-cli-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-cli-'));
         const file = path.join(dir, 'x.png');
         fs.writeFileSync(file, Buffer.from('bytes'));
         const { code, stderr } = run(['-i', file, '-p', 'bogus-provider']);
@@ -113,7 +113,7 @@ describe('top-level wiring', () => {
         // passed argv, so { from: 'node' } in main.ts is explicit protection
         // on top, not the only working spelling. The shim recreates the
         // Electron runtime shape around the real built CLI.
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-electron-'));
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-electron-'));
         const shim = path.join(dir, 'electron-shim.cjs');
         fs.writeFileSync(
             shim,
@@ -136,9 +136,9 @@ describe('top-level wiring', () => {
 
 describe('guard', () => {
     function homeWithGuards(guards: object): string {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-home-'));
-        fs.mkdirSync(path.join(home, '.modlens'));
-        fs.writeFileSync(path.join(home, '.modlens', 'config.json'), JSON.stringify({ guards }));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-home-'));
+        fs.mkdirSync(path.join(home, '.deepsee'));
+        fs.writeFileSync(path.join(home, '.deepsee', 'config.json'), JSON.stringify({ guards }));
         return home;
     }
 
@@ -147,8 +147,8 @@ describe('guard', () => {
         const { code, stdout } = run(['guard'], {
             HOME: home,
             USERPROFILE: home,
-            MODLENS_HARNESS: 'none',
-            MODLENS_MODEL: 'gpt-5.6-sol',
+            DEEPSEE_HARNESS: 'none',
+            DEEPSEE_MODEL: 'gpt-5.6-sol',
         });
         expect(code).toBe(1);
         const verdict = JSON.parse(stdout) as Record<string, string>;
@@ -163,8 +163,8 @@ describe('guard', () => {
         const { code, stdout } = run(['guard'], {
             HOME: home,
             USERPROFILE: home,
-            MODLENS_HARNESS: 'none',
-            MODLENS_MODEL: 'deepseek-v4-flash',
+            DEEPSEE_HARNESS: 'none',
+            DEEPSEE_MODEL: 'deepseek-v4-flash',
         });
         expect(code).toBe(0);
         expect((JSON.parse(stdout) as Record<string, string>).guard).toBe('allow');
@@ -176,7 +176,7 @@ describe('guard', () => {
         const { code, stdout } = run(['guard', '--model', 'gemini-3.1-pro-high'], {
             HOME: home,
             USERPROFILE: home,
-            MODLENS_HARNESS: 'none',
+            DEEPSEE_HARNESS: 'none',
         });
         expect(code).toBe(1);
         expect((JSON.parse(stdout) as Record<string, string>).source).toBe('self-report');
@@ -186,46 +186,46 @@ describe('guard', () => {
 
 describe('analyze guard gate', () => {
     function guardedHome(guards: object): { home: string; file: string } {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-home-'));
-        fs.mkdirSync(path.join(home, '.modlens'));
-        fs.writeFileSync(path.join(home, '.modlens', 'config.json'), JSON.stringify({ guards }));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-home-'));
+        fs.mkdirSync(path.join(home, '.deepsee'));
+        fs.writeFileSync(path.join(home, '.deepsee', 'config.json'), JSON.stringify({ guards }));
         const file = path.join(home, 'x.png');
         fs.writeFileSync(file, Buffer.from('bytes'));
         return { home, file };
     }
 
-    it('does not gate on a whitespace-only MODLENS_MODEL (no sniffing inside analyze)', () => {
+    it('does not gate on a whitespace-only DEEPSEE_MODEL (no sniffing inside analyze)', () => {
         const { home, file } = guardedHome({ denyModels: ['gpt-5.6*'] });
         // PATH is emptied so the provider chain fails fast without quota.
         const { stderr } = run(['-i', file], {
             HOME: home,
             USERPROFILE: home,
-            MODLENS_HARNESS: 'none',
-            MODLENS_MODEL: '   ',
+            DEEPSEE_HARNESS: 'none',
+            DEEPSEE_MODEL: '   ',
             PATH: '',
         });
         expect(stderr).not.toMatch(/guard/i);
         fs.rmSync(home, { recursive: true, force: true });
     });
 
-    it('lets MODLENS_MODEL=none pass even under denyWhenUnknown (advisory only)', () => {
+    it('lets DEEPSEE_MODEL=none pass even under denyWhenUnknown (advisory only)', () => {
         const { home, file } = guardedHome({ denyModels: ['gpt-5.6*'], denyWhenUnknown: true });
         const { stderr } = run(['-i', file], {
             HOME: home,
             USERPROFILE: home,
-            MODLENS_HARNESS: 'none',
-            MODLENS_MODEL: 'none',
+            DEEPSEE_HARNESS: 'none',
+            DEEPSEE_MODEL: 'none',
             PATH: '',
         });
         expect(stderr).not.toMatch(/guard/i);
         fs.rmSync(home, { recursive: true, force: true });
     });
 
-    it('refuses to spend a provider call when MODLENS_MODEL is deny-listed', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-home-'));
-        fs.mkdirSync(path.join(home, '.modlens'));
+    it('refuses to spend a provider call when DEEPSEE_MODEL is deny-listed', () => {
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-home-'));
+        fs.mkdirSync(path.join(home, '.deepsee'));
         fs.writeFileSync(
-            path.join(home, '.modlens', 'config.json'),
+            path.join(home, '.deepsee', 'config.json'),
             JSON.stringify({ guards: { denyModels: ['gpt-5.6*'] } }),
         );
         const file = path.join(home, 'x.png');
@@ -233,8 +233,8 @@ describe('analyze guard gate', () => {
         const { code, stderr } = run(['-i', file], {
             HOME: home,
             USERPROFILE: home,
-            MODLENS_HARNESS: 'none',
-            MODLENS_MODEL: 'gpt-5.6-sol',
+            DEEPSEE_HARNESS: 'none',
+            DEEPSEE_MODEL: 'gpt-5.6-sol',
         });
         expect(code).toBe(1);
         expect(stderr).toMatch(/guard/i);
@@ -242,13 +242,13 @@ describe('analyze guard gate', () => {
         fs.rmSync(home, { recursive: true, force: true });
     });
 
-    it('refuses to spend a provider call when MODLENS_MODEL is off the allowlist', () => {
+    it('refuses to spend a provider call when DEEPSEE_MODEL is off the allowlist', () => {
         const { home, file } = guardedHome({ allowModels: ['deepseek-v4-*'] });
         const { code, stderr } = run(['-i', file], {
             HOME: home,
             USERPROFILE: home,
-            MODLENS_HARNESS: 'none',
-            MODLENS_MODEL: 'claude-fable-5',
+            DEEPSEE_HARNESS: 'none',
+            DEEPSEE_MODEL: 'claude-fable-5',
         });
         expect(code).toBe(1);
         expect(stderr).toMatch(/guard/i);
@@ -259,7 +259,7 @@ describe('analyze guard gate', () => {
 
 describe('config show', () => {
     it('prints an empty effective config for a fresh home', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-home-'));
         // HOME for POSIX, USERPROFILE for Windows: os.homedir() reads one or the
         // other, and the config dir hangs off it.
         const { code, stdout } = run(['config', 'show'], { HOME: home, USERPROFILE: home });
@@ -269,7 +269,7 @@ describe('config show', () => {
     });
 
     it('merges a bound env var into the effective config, masked and tagged', () => {
-        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-home-'));
+        const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-home-'));
         const { code, stdout } = run(['config', 'show'], {
             HOME: home,
             USERPROFILE: home,
@@ -349,11 +349,11 @@ describe.skipIf(process.platform === 'win32')(
             await new Promise<void>((r) => proxy.listen(0, '127.0.0.1', r));
             const proxyPort = (proxy.address() as { port: number }).port;
 
-            // A private HOME so the real ~/.modlens/config.json stays untouched.
-            const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modlens-proxy-'));
-            fs.mkdirSync(path.join(home, '.modlens'));
+            // A private HOME so the real ~/.deepsee/config.json stays untouched.
+            const home = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-proxy-'));
+            fs.mkdirSync(path.join(home, '.deepsee'));
             fs.writeFileSync(
-                path.join(home, '.modlens', 'config.json'),
+                path.join(home, '.deepsee', 'config.json'),
                 JSON.stringify({
                     provider: 'gemini-api',
                     proxy: `http://127.0.0.1:${proxyPort}`,

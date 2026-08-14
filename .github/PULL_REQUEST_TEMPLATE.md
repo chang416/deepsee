@@ -1,15 +1,17 @@
-<!-- Please read before opening this PR. -->
+<!-- Thanks for contributing to DeepSee. Keep pull requests focused and easy to review. -->
 
-Thanks for the effort, and sorry to catch you here: **ModLens does not accept
-pull requests.** The tool is maintained single-handedly and every line stays
-author-owned, so PRs are closed without review as a matter of policy, not as a
-judgment on your work.
+## What changed
 
-What works instead:
+<!-- Link the issue or discussion this PR addresses. -->
 
-- **[Open an issue](https://github.com/liustack/modlens/issues)** describing
-  the bug or the idea. Issues get read and drive what gets built. If your
-  branch demonstrates the fix, link it from the issue as a reference.
-- **Keep it in your fork.** MIT means your copy is fully yours.
+## Verification
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for the whole picture.
+- [ ] I added or updated tests for the behavior that changed.
+- [ ] I ran the relevant checks (`pnpm typecheck`, targeted tests, and lint/build when applicable).
+- [ ] I updated user-facing documentation or explained why no docs change is needed.
+- [ ] I reviewed security and privacy impact, including credentials, untrusted input, local files, and subprocess/network behavior.
+- [ ] I did not include secrets, generated artifacts, or unrelated refactors.
+
+## Review notes
+
+Call out compatibility concerns, migrations, follow-up work, or known limitations. See [CONTRIBUTING.md](../CONTRIBUTING.md) for project conventions.

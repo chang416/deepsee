@@ -1,12 +1,12 @@
-# Contributing to ModLens
+# Contributing to DeepSee
 
-First, the policy: **ModLens does not accept pull requests.** It is a
+First, the policy: **DeepSee does not accept pull requests.** It is a
 deliberately small tool with a single maintainer who reviews and owns every
 line, and keeping that loop tight is what keeps it dependable.
 
 Two contributions that genuinely help:
 
-- **[Open an issue](https://github.com/liustack/modlens/issues).** Bugs, ideas,
+- **[Open an issue](https://github.com/<owner>/deepsee/issues).** Bugs, ideas,
   a confusing error message, docs that read wrong. Issues get read and drive
   what gets built. The templates tell you what to include.
 - **Fork it.** The MIT license means your copy is fully yours: rename it,
@@ -16,9 +16,9 @@ Everything below is for people working on a fork.
 
 ## Scope
 
-ModLens does one thing: turn an image into structured JSON evidence for
+DeepSee does one thing: turn an image into structured JSON evidence for
 text-only models. Web search and page fetching live in a sibling project
-([ModSearch](https://github.com/liustack/modsearch)), not here.
+(ModSearch), not here.
 
 ## Setup
 

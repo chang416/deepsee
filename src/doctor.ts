@@ -1,4 +1,4 @@
-// `modlens doctor`: diagnose local config and routing without spending any
+// `deepsee doctor`: diagnose local config and routing without spending any
 // provider quota or making a single network request. Everything here reads the
 // local machine only (Node version, PATH, the config file, process ancestry).
 import * as fs from 'fs';
@@ -7,7 +7,7 @@ import { composeChain } from './analyzer.ts';
 import { type DiscoverOptions, discoverAuto, type HarnessProbe } from './auto/discover.ts';
 import {
     CONFIG_PATH,
-    type ModlensConfig,
+    type DeepseeConfig,
     REUSE_HARNESSES,
     type ReuseHarness,
     resolveProviderSettings,
@@ -96,7 +96,7 @@ export interface DoctorReport {
 }
 
 export interface DoctorInput {
-    config: ModlensConfig;
+    config: DeepseeConfig;
     env?: NodeJS.ProcessEnv;
     providerFlag?: string;
     configPath?: string;
@@ -151,7 +151,7 @@ function checkNodeSqlite(): { available: boolean; detail: string } {
 
 function inspectProvider(
     descriptor: ProviderDescriptor,
-    config: ModlensConfig,
+    config: DeepseeConfig,
     env: NodeJS.ProcessEnv,
 ): DoctorProvider {
     if (descriptor.kind === 'subprocess') {
@@ -175,7 +175,12 @@ function inspectProvider(
 
     const settings = resolveProviderSettings(descriptor.name, config, env);
     const statuses: DoctorSettingStatus[] = (descriptor.required ?? []).map((req) => {
-        const envValue = req.env ? env[req.env]?.trim() : undefined;
+        const envValue =
+            descriptor.name === 'gemini-api' && req.field === 'apiKey'
+                ? env.GEMINI_API_KEYS?.trim() || env.GEMINI_API_KEY?.trim()
+                : req.env
+                  ? env[req.env]?.trim()
+                  : undefined;
         const value = settings[req.field]?.trim();
         const source: SettingSource = envValue ? 'env' : value ? 'file' : 'missing';
         return { field: req.field, present: Boolean(value), source, env: req.env };
@@ -197,7 +202,7 @@ function inspectProvider(
 }
 
 function resolveSelection(
-    config: ModlensConfig,
+    config: DeepseeConfig,
     providerFlag: string | undefined,
 ): DoctorReport['selection'] {
     const raw = providerFlag?.trim() || config.provider?.trim() || 'antigravity-cli';
@@ -330,7 +335,7 @@ function mark(ok: boolean): string {
 export function renderDoctorReport(report: DoctorReport): string {
     const lines: string[] = [];
 
-    lines.push('modlens doctor');
+    lines.push('deepsee doctor');
     lines.push('(local diagnostics only: no network calls, no provider quota spent)');
     lines.push('');
 
@@ -388,7 +393,7 @@ export function renderDoctorReport(report: DoctorReport): string {
     );
     lines.push('');
 
-    lines.push('Reuse (may modlens reuse other local logins? config "reuse.<harness>")');
+    lines.push('Reuse (may deepsee reuse other local logins? config "reuse.<harness>")');
     lines.push(
         `  decisions: ${Object.entries(report.reuse.decisions)
             .map(([harness, decision]) => `${harness} ${decision}`)

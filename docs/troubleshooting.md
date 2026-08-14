@@ -1,5 +1,5 @@
 ---
-summary: 'Troubleshooting: every error modlens can print, what causes it, what to do'
+summary: 'Troubleshooting: every error deepsee can print, what causes it, what to do'
 read_when:
   - A run failed and the message is not self-explanatory
   - recover-paste found nothing, or found the wrong image
@@ -10,9 +10,9 @@ read_when:
 
 English | [中文](troubleshooting.zh-CN.md)
 
-Start with `modlens doctor`: it checks your Node version, which providers are ready, which one will be selected and why, and the detected harness, all without spending quota or making a network request. It catches most setup problems before you read any further.
+Start with `deepsee doctor`: it checks your Node version, which providers are ready, which one will be selected and why, and the detected harness, all without spending quota or making a network request. It catches most setup problems before you read any further.
 
-Every message below is one modlens actually prints. Search this file for the words you saw.
+Every message below is one deepsee actually prints. Search this file for the words you saw.
 
 ## Antigravity CLI cannot read its stored login token
 
@@ -25,13 +25,13 @@ sessions (agents, cron, systemd, SSH without a desktop login) ...
 
 agy keeps its token in the OS keyring. When the keyring is locked, agy reports itself as signed out and tries a browser sign-in that cannot finish without a display. Three ways forward:
 
-- Unlock the keyring, or run modlens from a desktop session.
+- Unlock the keyring, or run deepsee from a desktop session.
 - Sign in again with `agy`.
 - Switch to a provider that needs no interactive login:
 
 ```bash
-modlens config set gemini-api.apiKey <key>   # free key: https://aistudio.google.com
-modlens config set provider gemini-api
+deepsee config set gemini-api.apiKey <key>   # free key: https://aistudio.google.com
+deepsee config set provider gemini-api
 ```
 
 ## Quota exhausted
@@ -50,7 +50,7 @@ Wait for the reset, or move to `gemini-api`, which has its own budget. Parallel 
 Provider CLI not found: agy (spawn ENOENT). Install it and sign in first.
 ```
 
-The binary is not on PATH, or `--provider-bin` points somewhere wrong. A different spawn-level failure (`... could not start \`claude\`: spawn EACCES`) keeps its real error code so the cause is nameable. On Windows the npm-installed CLIs are `.cmd` shims; modlens resolves them through PATHEXT and runs their real Node entry directly, so neither the bare name (ENOENT) nor the `.cmd` (EINVAL) trips it up.
+The binary is not on PATH, or `--provider-bin` points somewhere wrong. A different spawn-level failure (`... could not start \`claude\`: spawn EACCES`) keeps its real error code so the cause is nameable. On Windows the npm-installed CLIs are `.cmd` shims; deepsee resolves them through PATHEXT and runs their real Node entry directly, so neither the bare name (ENOENT) nor the `.cmd` (EINVAL) trips it up.
 
 ```
 Working directory does not exist: /some/path
@@ -82,8 +82,8 @@ The output lists images oldest to newest, so the **last** entry is the most rece
 
 `recover-paste` auto-detects which harness it runs inside (process ancestry first, then environment fingerprints) and reads only that harness's storage. Two knobs override it:
 
-- **`MODLENS_HARNESS`** forces the storage scope without a flag: `claude-code`, `pi`, `opencode`, `codex`, or `none` (scan every store, no scoping). Detection reads it first, so it wins over ancestry and env fingerprints. `--harness` does the same for a single run.
-- **`--out-dir`** sets where recovered images land. By default each run mints a fresh, unpredictable `<tmpdir>/modlens-paste-*` directory (0700, holding 0600 files), so nobody can pre-create a shared path to intercept the bytes. Point it elsewhere when the system temp dir is not where you want them. An explicit `--out-dir` that already exists is rejected unless it is a real directory (not a symlink), owned by you, with no group or world access. On Windows those ownership and permission checks are skipped, since the platform has no POSIX bits (see the Windows section below). The symlink guard still applies.
+- **`DEEPSEE_HARNESS`** forces the storage scope without a flag: `claude-code`, `pi`, `opencode`, `codex`, or `none` (scan every store, no scoping). Detection reads it first, so it wins over ancestry and env fingerprints. `--harness` does the same for a single run.
+- **`--out-dir`** sets where recovered images land. By default each run mints a fresh, unpredictable `<tmpdir>/deepsee-paste-*` directory (0700, holding 0600 files), so nobody can pre-create a shared path to intercept the bytes. Point it elsewhere when the system temp dir is not where you want them. An explicit `--out-dir` that already exists is rejected unless it is a real directory (not a symlink), owned by you, with no group or world access. On Windows those ownership and permission checks are skipped, since the platform has no POSIX bits (see the Windows section below). The symlink guard still applies.
 
 ## This is a Codex session
 
@@ -104,26 +104,26 @@ OpenAI-compatible API returned JSON that does not match the vision schema
 That endpoint returned a partial result. Only agy, gemini-api, anthropic, and claude-cli enforce the schema server-side, so weaker gateways can produce half a result. Retry once, then switch:
 
 ```bash
-modlens -i <image> -p gemini-api
+deepsee -i <image> -p gemini-api
 ```
 
 ## The guard said deny, or a read was refused
 
 ```
-Invocation guard denied this read: active model "gemini-3.1-pro" matches guards.denyModels pattern "gemini-3*". A model with native vision should read the image itself. To override, unset MODLENS_MODEL or edit guards in /Users/you/.modlens/config.json.
+Invocation guard denied this read: active model "gemini-3.1-pro" matches guards.denyModels pattern "gemini-3*". A model with native vision should read the image itself. To override, unset DEEPSEE_MODEL or edit guards in /Users/you/.deepsee/config.json.
 ```
 
-Working as configured: `guards.denyModels` in the config file lists vision-capable models, and the active model matched one, so the engine refused to spend a provider call on an image that model can read itself. `modlens doctor` has a Guard section showing the rules, which model was detected, from which signal (the `MODLENS_MODEL` env var, session storage, or a `--model` self-report), and the verdict.
+Working as configured: `guards.denyModels` in the config file lists vision-capable models, and the active model matched one, so the engine refused to spend a provider call on an image that model can read itself. `deepsee doctor` has a Guard section showing the rules, which model was detected, from which signal (the `DEEPSEE_MODEL` env var, session storage, or a `--model` self-report), and the verdict.
 
-If the detection is wrong, `MODLENS_MODEL=<actual-model> modlens guard` overrides everything, and `MODLENS_MODEL=none` marks the model as unknown (the verdict then follows `denyWhenUnknown`, default allow). To turn the guard off entirely: `modlens config set guards.denyModels ''`.
+If the detection is wrong, `DEEPSEE_MODEL=<actual-model> deepsee guard` overrides everything, and `DEEPSEE_MODEL=none` marks the model as unknown (the verdict then follows `denyWhenUnknown`, default allow). To turn the guard off entirely: `deepsee config set guards.denyModels ''`.
 
-One known blind spot: storage detection reads the newest assistant turn recorded for this project, so two sessions running different models in the same project directory at the same time can shadow each other (Claude Code and Codex pin the exact session through their injected session ids, Pi and OpenCode cannot). When that bites, `MODLENS_MODEL` is the override.
+One known blind spot: storage detection reads the newest assistant turn recorded for this project, so two sessions running different models in the same project directory at the same time can shadow each other (Claude Code and Codex pin the exact session through their injected session ids, Pi and OpenCode cannot). When that bites, `DEEPSEE_MODEL` is the override.
 
-Note that the hard refusal above only fires on an actual `denyModels` match against the explicit `MODLENS_MODEL` value. Storage detection and the `denyWhenUnknown` policy never block `analyze`, they only speak through `modlens guard`, whose deny is advice to the agent rather than a locked door.
+Note that the hard refusal above only fires on an actual `denyModels` match against the explicit `DEEPSEE_MODEL` value. Storage detection and the `denyWhenUnknown` policy never block `analyze`, they only speak through `deepsee guard`, whose deny is advice to the agent rather than a locked door.
 
 ## dsh says "declares no dsh.bundle — installed as a plain dependency"
 
-The dsh profile installed an old modlens version. The `dsh.bundle` declaration
+The dsh profile installed an old deepsee version. The `dsh.bundle` declaration
 exists since 3.9.0, and pnpm v11's release-age gate (`minimumReleaseAge`,
 quarantining recently published versions, with a 10-day window measured on pnpm 11.21) silently falls back to an older version when every
 recent one is inside the window. That old version has no bundle declaration,
@@ -134,7 +134,7 @@ a range, but an explicit version or dist-tag skips it ([pnpm#9989](https://githu
 command carries `@latest`:
 
 ```sh
-npx -y @deepseek-ai/dsh plugin --profile <name> add @liustack/modlens@latest
+npx -y @deepseek-ai/dsh plugin --profile <name> add @chang416/deepsee@latest
 ```
 
 dsh's reconcile notices the bundle declaration on the new version and
@@ -148,12 +148,12 @@ name, not `name@version`, so it survives future releases:
 
 ```yaml
 minimumReleaseAgeExclude:
-  - '@liustack/modlens'
+  - 'deepsee'
 ```
 
-then `npx -y @deepseek-ai/dsh plugin --profile <name> update @liustack/modlens`.
+then `npx -y @deepseek-ai/dsh plugin --profile <name> update deepsee`.
 The trade-off is honest either way: an explicit `@latest` (or the exclusion)
-opts modlens out of pnpm's supply-chain cooling-off window, so new releases
+opts deepsee out of pnpm's supply-chain cooling-off window, so new releases
 install immediately.
 
 ## fetch failed, or could not connect
@@ -164,13 +164,13 @@ Could not connect to generativelanguage.googleapis.com (UND_ERR_CONNECT_TIMEOUT)
 
 The API request never left the machine. On networks that reach the internet
 through a proxy this is expected: Node's fetch ignores the proxy environment
-variables by default. modlens honors them once you ask it to route that way,
+variables by default. deepsee honors them once you ask it to route that way,
 in either form:
 
 ```bash
-HTTPS_PROXY=http://127.0.0.1:7890 modlens -i shot.png -p gemini-api   # env (NO_PROXY honored too)
-modlens config set proxy http://127.0.0.1:7890                        # persistent, all API providers
-modlens config set openai.proxy http://127.0.0.1:7890                 # one provider only
+HTTPS_PROXY=http://127.0.0.1:7890 deepsee -i shot.png -p gemini-api   # env (NO_PROXY honored too)
+deepsee config set proxy http://127.0.0.1:7890                        # persistent, all API providers
+deepsee config set openai.proxy http://127.0.0.1:7890                 # one provider only
 ```
 
 The proxy applies to API provider requests only. The remote-image download
@@ -182,7 +182,7 @@ URLs to a provider that fetches them upstream.
 ## Config file problems
 
 ```
-Cannot read /Users/you/.modlens/config.json: EACCES ... Fix the file or its permissions.
+Cannot read /Users/you/.deepsee/config.json: EACCES ... Fix the file or its permissions.
 ```
 
 The file exists but is unreadable. A missing file is fine, so this is a real problem rather than something to ignore.
@@ -191,7 +191,7 @@ The file exists but is unreadable. A missing file is fine, so this is a real pro
 Failed to parse ... Fix or delete the file.
 ```
 
-Invalid JSON. `modlens config init --force` writes a clean one, losing the old contents.
+Invalid JSON. `deepsee config init --force` writes a clean one, losing the old contents.
 
 ## Timeouts
 
@@ -206,11 +206,11 @@ Retry once with `--timeout 300000`. Dense images on agy legitimately take 15-40 
 A model that thinks by default spends its budget before it starts transcribing, which a vision read does not need. There is no `--no-thinking` flag because each vendor names the switch differently, so pass the vendor's own field:
 
 ```bash
-modlens config set openai.extraBody '{"thinking":{"type":"disabled"}}'
-modlens -i shot.png --extra-body '{"reasoning_effort":"low"}'    # one run only
+deepsee config set openai.extraBody '{"thinking":{"type":"disabled"}}'
+deepsee -i shot.png --extra-body '{"reasoning_effort":"low"}'    # one run only
 ```
 
-The per-vendor spellings, which models cannot turn it off at all, and how to tell whether the field actually landed are in [Configuration](../skills/modlens/references/configure.md#turning-thinking-off).
+The per-vendor spellings, which models cannot turn it off at all, and how to tell whether the field actually landed are in [Configuration](../skills/deepsee/references/configure.md#turning-thinking-off).
 
 ```
 extraBody cannot override "messages" for the openai provider
@@ -220,12 +220,12 @@ That field carries the image, the prompt, or the schema enforcement. Remove it a
 
 ## Windows
 
-ModLens runs on Windows. Three platform differences are worth knowing:
+DeepSee runs on Windows. Three platform differences are worth knowing:
 
 - **No POSIX permission checks.** Windows files carry no owner, group, or world bits (they read back as `0o666`/`0o777`, with access governed by ACLs), so `doctor` does not judge the config file's mode and `recover-paste --out-dir` does not reject a directory on ownership or group/world access. The symlink guard on `--out-dir` still applies.
-- **Harness detection uses environment fingerprints.** There is no `ps` to read the process tree, so detection relies on the environment variables each harness sets. If a run guesses wrong, force it with `--harness <name>` or `MODLENS_HARNESS`.
+- **Harness detection uses environment fingerprints.** There is no `ps` to read the process tree, so detection relies on the environment variables each harness sets. If a run guesses wrong, force it with `--harness <name>` or `DEEPSEE_HARNESS`.
 - **Paste recovery.** OpenCode recovery is covered on Windows (issue #11). The Claude Code and Pi JSONL paths depend on `os.homedir()` and each harness's on-disk slug there. If recovery comes up empty, pass `--transcript` at the file, or drag the image into the terminal.
 
 ## Still stuck
 
-Include the exact command and the full error in an issue: https://github.com/liustack/modlens/issues
+Include the exact command and the full error in an issue: https://github.com/chang416/deepsee/issues
