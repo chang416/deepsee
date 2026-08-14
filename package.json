@@ -5,7 +5,7 @@
     "author": "chang416",
     "type": "module",
     "bin": {
-        "deepsee": "./dist/main.js"
+        "deepsee": "dist/main.js"
     },
     "scripts": {
         "dev": "vite build --watch",
