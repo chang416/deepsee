@@ -29,12 +29,6 @@ npx -y @deepseek-ai/dsh plugin --profile web add @chang416/deepsee@latest
 
 Open **DeepSee Settings** to add free Gemini keys (one per line), choose a default preview URL, and customize which work belongs to Flash or Pro.
 
-<p align="center">
-  <img src="assets/deepsee-demo.gif" width="100%" alt="DeepSee demo workflow: Gemini inspects a screenshot, DeepSeek fixes it, and DeepSee visually re-checks the result" />
-</p>
-
-<p align="center"><sub>Demo workflow — Gemini supplies visual evidence; DeepSeek owns the code and the final visual re-check.</sub></p>
-
 ![How DeepSee combines Gemini vision with DeepSeek model routing](assets/flow.en.svg)
 
 ## Highlights
