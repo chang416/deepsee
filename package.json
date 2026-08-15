@@ -1,6 +1,6 @@
 {
     "name": "@chang416/deepsee",
-    "version": "4.0.0",
+    "version": "4.0.1",
     "description": "DeepSee: DeepSeek Harness vision, multi-model routing, and Gemini visual self-checks before delivery",
     "author": "chang416",
     "type": "module",
