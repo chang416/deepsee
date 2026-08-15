@@ -902,11 +902,16 @@ function modelForLane(models, lane, configured) {
 async function resolveDelegationTarget(ctx, routing, currentUpstream, lane, settings) {
   const configured = lane === 'pro' ? settings.proModel : settings.flashModel
   const pinned = lane === 'pro' ? settings.proProvider : settings.flashProvider
-  // A pinned route goes first, then the previous order. Keeping the rest of
-  // the chain behind it means a route that is momentarily unreachable costs a
-  // fallback rather than the whole subtask, and the tool's own output names
-  // the provider that ran, so the fallback is never silent.
-  const ordered = [...new Set([pinned, currentUpstream, ...routing.upstreamByWrapper.values()])].filter(Boolean)
+  const locked = pinned && (lane === 'pro' ? settings.proLock : settings.flashLock)
+  // Locked: that route or nothing. Someone who picked the free route did so
+  // to stop work reaching a paid one, and a fallback would spend the money
+  // they were avoiding — so this fails loudly and names the route instead.
+  // Unlocked: the choice goes first and the rest of the chain stays behind it,
+  // so an unreachable route costs a fallback rather than the whole subtask,
+  // and the tool's own output names the provider that ran.
+  const ordered = locked
+    ? [pinned]
+    : [...new Set([pinned, currentUpstream, ...routing.upstreamByWrapper.values()])].filter(Boolean)
   for (const provider of ordered) {
     let models
     try {
@@ -916,6 +921,12 @@ async function resolveDelegationTarget(ctx, routing, currentUpstream, lane, sett
     }
     const model = modelForLane(models, lane, configured)
     if (model) return { provider, model: model.id }
+  }
+  if (locked) {
+    throw new Error(
+      `DeepSee ${lane} lane is locked to ${pinned}/${configured}, which is not answering. ` +
+        'Unlock the lane in DeepSee Settings to allow another route, or bring that one back.',
+    )
   }
   throw new Error(`No live DeepSeek V4 ${lane === 'pro' ? 'Pro' : 'Flash'} route is available`)
 }

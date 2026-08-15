@@ -259,7 +259,7 @@ window.__ModuleLoader__.load({
           laneTitle.style.cssText = 'font-size:16px;margin:28px 0 6px'
           var laneHelp = element(
             'p',
-            'Auto picks the first live DeepSeek route it finds. Pin a lane to spend a specific subscription — a pinned route is preferred, and DeepSee falls back to the others only if it cannot be reached.',
+            'Auto picks the first live DeepSeek route it finds. Choose a route to spend a specific subscription. Locked means that route or nothing — pick it when the point is that work must never reach a paid route; the lane fails loudly instead. Unlocked keeps the others as backup.',
           )
           laneHelp.style.cssText = 'margin:0 0 12px;color:#9fb0ca;font-size:13px;line-height:1.5'
           panel.append(laneTitle, laneHelp)
@@ -267,9 +267,22 @@ window.__ModuleLoader__.load({
           var laneGrid = element('div')
           laneGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px'
           var laneSelects = {}
+          var laneModes = {}
           ;[
-            { lane: 'flash', label: 'Flash lane', provider: settings.flashProvider, model: settings.flashModel },
-            { lane: 'pro', label: 'Pro lane', provider: settings.proProvider, model: settings.proModel },
+            {
+              lane: 'flash',
+              label: 'Flash lane',
+              provider: settings.flashProvider,
+              model: settings.flashModel,
+              lock: settings.flashLock,
+            },
+            {
+              lane: 'pro',
+              label: 'Pro lane',
+              provider: settings.proProvider,
+              model: settings.proModel,
+              lock: settings.proLock,
+            },
           ].forEach((entry) => {
             var select = element('select')
             select.style.cssText =
@@ -282,10 +295,33 @@ window.__ModuleLoader__.load({
               option.value = String(index)
               select.append(option)
             })
-            var pinned = routes.findIndex((route) => route.provider === entry.provider && route.model === entry.model)
-            select.value = entry.provider && pinned >= 0 ? String(pinned) : ''
+            var chosen = routes.findIndex((route) => route.provider === entry.provider && route.model === entry.model)
+            select.value = entry.provider && chosen >= 0 ? String(chosen) : ''
             laneSelects[entry.lane] = select
-            laneGrid.append(field(entry.label, select))
+
+            var mode = element('select')
+            mode.style.cssText = select.style.cssText
+            ;[
+              { value: 'prefer', text: 'Prefer — fall back if unreachable' },
+              { value: 'lock', text: 'Locked — this route or fail' },
+            ].forEach((choice) => {
+              var option = element('option', choice.text)
+              option.value = choice.value
+              mode.append(option)
+            })
+            mode.value = entry.lock ? 'lock' : 'prefer'
+            laneModes[entry.lane] = mode
+
+            // Auto has nothing to lock, so the mode follows the route choice
+            // rather than sitting there offering a promise it cannot keep.
+            var syncMode = () => {
+              mode.disabled = select.value === ''
+              mode.style.opacity = mode.disabled ? '0.45' : '1'
+            }
+            select.addEventListener('change', syncMode)
+            syncMode()
+
+            laneGrid.append(field(entry.label, select), field(`${entry.label} fallback`, mode))
           })
           panel.append(laneGrid)
           if (routes.length === 0) {
@@ -438,9 +474,18 @@ window.__ModuleLoader__.load({
             var lanes = {}
             ;['flash', 'pro'].forEach((lane) => {
               var picked = laneSelects[lane].value
-              // '' clears the pin; the host reads that as "back to discovery
-              // order" rather than as a malformed choice.
-              lanes[lane] = picked === '' ? '' : routes[Number(picked)]
+              // '' clears the choice; the host reads that as "back to
+              // discovery order" rather than as a malformed value.
+              if (picked === '') {
+                lanes[lane] = ''
+                return
+              }
+              var route = routes[Number(picked)]
+              lanes[lane] = {
+                provider: route.provider,
+                model: route.model,
+                lock: laneModes[lane].value === 'lock',
+              }
             })
             var payload = {
               assignments,
