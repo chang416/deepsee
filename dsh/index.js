@@ -820,11 +820,12 @@ function registerDelegationTool(ctx, routing) {
         type: 'object',
         additionalProperties: false,
         properties: {
-          lane: { type: 'string', required: true },
-          provider: { type: 'string', required: true },
-          model: { type: 'string', required: true },
-          output: { type: 'string', required: true },
+          lane: { type: 'string' },
+          provider: { type: 'string' },
+          model: { type: 'string' },
+          output: { type: 'string' },
         },
+        required: ['lane', 'provider', 'model', 'output'],
       },
       render: (_args, value) => [
         {

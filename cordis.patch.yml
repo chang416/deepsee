@@ -1,5 +1,10 @@
 # dsh bundle layer: mount the deepsee vision plugin (dsh/index.js via the
 # package root export; bin stays the CLI, nothing imports the root otherwise).
+#
+# `name` is imported as a bare specifier by the cordis loader, whose baseUrl is
+# the profile directory, so it must be the published package name exactly as it
+# lands in the profile's node_modules. The bin name ('deepsee') is not a module
+# specifier and does not resolve here.
 - insert:
     - id: deepsee
-      name: 'deepsee'
+      name: '@chang416/deepsee'

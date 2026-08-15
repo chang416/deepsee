@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.0.1 - 2026-08-15
+
+- **Fixed: the documented dsh install produced a profile that would not boot.** `cordis.patch.yml` named the plugin `deepsee`, the executable's name rather than the package's. The cordis loader imports that value as a bare specifier against the profile directory, where the package installs as `@chang416/deepsee`, so `dsh web` aborted with `Cannot find package 'deepsee'` and the whole profile failed to load. The patch now names the package, and the bundle test asserts it against `package.json` instead of a literal so the two cannot drift apart again.
+- **Fixed: DeepSee Auto and Customize never appeared in the model selector.** The `deepsee_delegate` output schema marked each property `required: true`, which is not how JSON Schema spells it. dsh rejected the tool at registration, the plugin logged `Auto/Customize delegation skipped` and left `routing.ready` false, and the two orchestration entries were withheld from every model list. The schema now carries the standard `required` array, and a new test rejects a boolean `required` anywhere in any registered tool schema.
+
 ## 4.0.0 - 2026-08-15
 
 - **DeepSee becomes a complete vision-and-routing plugin for DeepSeek Harness.** Gemini turns screenshots and pasted images into structured evidence while DeepSeek remains the only model that writes and integrates code.
