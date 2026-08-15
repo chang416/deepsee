@@ -8,7 +8,7 @@ shell syntax.
 
 ## Pinned version
 
-- Pinned CLI version: 4.0.1
+- Pinned CLI version: 4.0.2
 - npm package: `deepsee`
 - CLI binary name: `deepsee`
 
