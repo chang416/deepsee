@@ -408,7 +408,13 @@ describe('dsh plugin vision provider (phase 3)', () => {
         };
         expect(providerInfo.id).toBe('deepseek-deepsee');
         expect(providerInfo.name.length).toBeGreaterThan(0);
-        expect(registered[0].adapter.providerRetryPolicy('deepseek-deepsee')).toBeUndefined();
+        // Must be a real policy, not undefined: undefined means dsh's
+        // paid-route default of two retries, which is spent long before a
+        // free tier's 429 clears.
+        expect(registered[0].adapter.providerRetryPolicy('deepseek-deepsee')).toEqual({
+            mode: 'normal',
+            maxRetries: 5,
+        });
         const adapter = registered[0].adapter;
         const models = (await adapter.listModels('deepseek-deepsee')) as Array<{
             provider: string;
