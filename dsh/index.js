@@ -69,7 +69,8 @@ export function apply(ctx, config = {}) {
         // scope carries webServer; the plugin's own ctx carries llm for the
         // takeover verdicts.
         if (config.pasteToPath !== false) registerPasteRoute(scope, ctx)
-        registerSettingsRoute(scope)
+        if (config.fileUpload !== false) registerFileRoute(scope)
+        registerSettingsRoute(scope, ctx, routing)
       } catch (error) {
         console.error(`[deepsee] web controls skipped: ${error}`)
       }
@@ -225,6 +226,29 @@ const PASTE_SNIFFS = [
   },
 ]
 const PASTE_MAX_BYTES = 25 * 1024 * 1024
+// The attachment route carries whole documents rather than one pasted
+// screenshot, so it gets its own, larger ceiling. Still bounded: the bytes
+// land on the user's own disk and a runaway upload is a local denial of
+// service, not just a slow request.
+const FILE_MAX_BYTES = 64 * 1024 * 1024
+
+/**
+ * A filename safe to join onto a directory we control. The browser hands us
+ * whatever the OS reported, which on a hostile page is attacker-chosen: only
+ * the basename survives, the charset is reduced to something no shell or path
+ * parser can be talked into reinterpreting, and a name that reduces to
+ * nothing (or to dots) is replaced rather than joined.
+ */
+function safeUploadName(raw) {
+  const base = String(raw ?? '')
+    .split(/[/\\]/)
+    .pop()
+  const cleaned = base
+    .replace(/[^A-Za-z0-9._-]+/g, '-')
+    .replace(/^[.-]+/, '')
+    .slice(0, 100)
+  return cleaned && cleaned !== '.' && cleaned !== '..' ? cleaned : 'upload.bin'
+}
 
 /**
  * Should the browser take a paste over for the model behind this selector
@@ -404,9 +428,106 @@ function registerPasteRoute(ctx, host) {
   })
 }
 
+/**
+ * The attachment route. POST /deepsee/file?name=<original name>: bytes in,
+ * `{ path }` out. The paste route deliberately refuses anything that is not a
+ * real image, because those bytes are fed to a vision model; this one exists
+ * for the other half of "attach something" — a PDF, a CSV, a log — where the
+ * point is only to materialize the file where the agent's own filesystem
+ * tools can read it, since a browser never discloses the real path of a
+ * picked file. Same privacy stance as paste: 0600 inside a fresh
+ * unpredictable directory, and same-origin only.
+ */
+function registerFileRoute(ctx) {
+  ctx.webServer.register({
+    name: 'deepsee-file',
+    kind: 'exact',
+    path: '/deepsee/file',
+    handler: async (req, res) => {
+      if (req.method !== 'POST') {
+        res.writeHead(405, { allow: 'POST' }).end()
+        return
+      }
+      try {
+        const origin = req.headers?.origin
+        if (origin) {
+          let sameOrigin = false
+          try {
+            sameOrigin = new URL(origin).host === req.headers?.host
+          } catch {
+            sameOrigin = false
+          }
+          if (!sameOrigin) {
+            res.writeHead(403, { 'content-type': 'application/json' })
+            res.end(JSON.stringify({ error: 'cross-origin uploads are not allowed' }))
+            return
+          }
+        }
+        const chunks = []
+        let total = 0
+        for await (const chunk of req) {
+          total += chunk.length
+          if (total > FILE_MAX_BYTES) {
+            res.writeHead(413, { 'content-type': 'application/json' })
+            res.end(JSON.stringify({ error: `file over the ${FILE_MAX_BYTES}-byte limit` }))
+            req.destroy()
+            return
+          }
+          chunks.push(chunk)
+        }
+        if (total === 0) {
+          res.writeHead(400, { 'content-type': 'application/json' })
+          res.end(JSON.stringify({ error: 'empty upload' }))
+          return
+        }
+        const name = safeUploadName(new URL(req.url, 'http://localhost').searchParams.get('name'))
+        const { mkdtemp, writeFile } = await import('node:fs/promises')
+        const { tmpdir } = await import('node:os')
+        const { join } = await import('node:path')
+        const dir = await mkdtemp(join(tmpdir(), 'deepsee-dsh-file-'))
+        const file = join(dir, name)
+        await writeFile(file, Buffer.concat(chunks), { mode: 0o600 })
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ path: file }))
+      } catch (error) {
+        res.writeHead(500, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ error: String(error?.message ?? error) }))
+      }
+    },
+  })
+}
+
 const SETTINGS_MAX_BYTES = 128 * 1024
 
-function registerSettingsRoute(ctx) {
+/**
+ * Every live DeepSeek route the lanes can be pinned to, as
+ * `{ provider, model, label }`. Built from the same wrapper map delegation
+ * resolves against, so the picker can only offer routes that actually exist:
+ * a machine with the official provider, OpenCode Zen, and OpenCode Go lists
+ * each one's own Flash and Pro ids separately. A provider that fails to answer
+ * is skipped rather than failing the whole list, since one dead route must not
+ * hide the others.
+ */
+async function listLaneRoutes(host, routing) {
+  const routes = []
+  for (const provider of new Set(routing.upstreamByWrapper.values())) {
+    if (!provider) continue
+    let models
+    try {
+      models = await host.llm.listModels(provider)
+    } catch {
+      continue
+    }
+    for (const model of models ?? []) {
+      const id = String(model?.id ?? '')
+      if (!/^deepseek-/i.test(id)) continue
+      routes.push({ provider, model: id, label: `${model?.name ?? id} · ${provider}` })
+    }
+  }
+  return routes
+}
+
+function registerSettingsRoute(ctx, host, routing) {
   ctx.webServer.register({
     name: 'deepsee-settings',
     kind: 'exact',
@@ -414,8 +535,9 @@ function registerSettingsRoute(ctx) {
     handler: async (req, res) => {
       try {
         if (req.method === 'GET') {
+          const settings = await publicControlSettings()
           res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
-          res.end(JSON.stringify(await publicControlSettings()))
+          res.end(JSON.stringify({ ...settings, routes: await listLaneRoutes(host, routing) }))
           return
         }
         if (req.method !== 'POST') {
@@ -466,6 +588,12 @@ function registerSettingsRoute(ctx) {
           update.assignments = body.assignments
         }
         if (Object.hasOwn(body, 'maxParallel')) update.maxParallel = body.maxParallel
+        if (Object.hasOwn(body, 'lanes')) {
+          if (!body.lanes || typeof body.lanes !== 'object' || Array.isArray(body.lanes)) {
+            throw new Error('lanes must be an object')
+          }
+          update.lanes = body.lanes
+        }
         if (Object.hasOwn(body, 'visualCheck')) {
           if (!body.visualCheck || typeof body.visualCheck !== 'object' || Array.isArray(body.visualCheck)) {
             throw new Error('visualCheck must be an object')
@@ -773,7 +901,12 @@ function modelForLane(models, lane, configured) {
 
 async function resolveDelegationTarget(ctx, routing, currentUpstream, lane, settings) {
   const configured = lane === 'pro' ? settings.proModel : settings.flashModel
-  const ordered = [currentUpstream, ...new Set(routing.upstreamByWrapper.values())].filter(Boolean)
+  const pinned = lane === 'pro' ? settings.proProvider : settings.flashProvider
+  // A pinned route goes first, then the previous order. Keeping the rest of
+  // the chain behind it means a route that is momentarily unreachable costs a
+  // fallback rather than the whole subtask, and the tool's own output names
+  // the provider that ran, so the fallback is never silent.
+  const ordered = [...new Set([pinned, currentUpstream, ...routing.upstreamByWrapper.values()])].filter(Boolean)
   for (const provider of ordered) {
     let models
     try {
@@ -1309,6 +1442,13 @@ async function readImageBlock(ctx, block, signal) {
   const { tmpdir } = await import('node:os')
   const { join } = await import('node:path')
   let dir
+  // A vision read is the slowest thing this plugin does, and the host surface
+  // shows only a spinner while it runs. Stamping how long it took, and which
+  // engine spent the time, into the block itself is the one place that
+  // reaches the user: a slow free engine becomes visibly slow instead of
+  // indistinguishable from a hang.
+  const startedAt = Date.now()
+  const seconds = () => `${((Date.now() - startedAt) / 1000).toFixed(1)}s`
   try {
     // StoredImageAttachment carries { ref, data: Uint8Array }; the media type
     // rides the reference (verified against dsh attachment/src/types.ts).
@@ -1338,11 +1478,12 @@ async function readImageBlock(ctx, block, signal) {
       throw new Error((stderr || stdout).trim().slice(0, 300))
     }
     const parsed = JSON.parse(stdout)
+    const engine = parsed.meta?.provider ? `${parsed.meta.provider}, ` : ''
     return {
       ok: true,
       block: {
         type: 'text',
-        text: `[Pasted image, read by the deepsee vision bridge]\n${renderEvidence(parsed.result)}`,
+        text: `[Pasted image, read by the deepsee vision bridge (${engine}${seconds()})]\n${renderEvidence(parsed.result)}`,
       },
     }
   } catch (error) {
@@ -1350,9 +1491,9 @@ async function readImageBlock(ctx, block, signal) {
       ok: false,
       block: {
         type: 'text',
-        text: `[A pasted image could not be read by deepsee: ${
+        text: `[A pasted image could not be read by deepsee after ${seconds()}: ${
           error instanceof Error ? error.message.slice(0, 300) : String(error)
-        }. Tell the user, and suggest running \`npx deepsee doctor\`.]`,
+        }. Tell the user how long it took and what failed, and suggest running \`npx deepsee doctor\`.]`,
       },
     }
   } finally {
