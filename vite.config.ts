@@ -1,11 +1,19 @@
 import { builtinModules } from 'module';
 import { resolve } from 'path';
-import { defineConfig } from 'vite';
+// vitest/config re-exports vite's defineConfig and adds the `test` key, so one
+// config file still serves both the library build and the suite (a separate
+// vitest.config.ts would shadow this file and drop __APP_VERSION__).
+import { defineConfig } from 'vitest/config';
 import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
+    },
+    test: {
+        // The build is a prerequisite of the whole run, not of one file: doing
+        // it in a beforeAll let other workers observe a half-written dist.
+        globalSetup: ['./scripts/build-once.mjs'],
     },
     build: {
         lib: {
