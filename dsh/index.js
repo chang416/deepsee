@@ -525,11 +525,36 @@ const VOICE_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models'
 // Technical terms are called out because this is exactly where OS-level
 // dictation fails — a sentence mixing Chinese with `retryPolicy` or `opencode`
 // comes back mangled, and there is no way to notice from the result alone.
+// Measured, not assumed: without this list a dictated "check the retryPolicy
+// in opencode and fix the deepsee plugin" came back as "retry policy in
+// OpenCoach and fix the DeepSea plug-in". These words are homophones of
+// ordinary English, so a transcriber with no context has no way to prefer the
+// identifier, and the mistake is invisible in the result. Naming the
+// vocabulary is what turns an ambiguous sound into a known token.
+const VOICE_VOCABULARY = [
+  'deepsee',
+  'DeepSeek',
+  'dsh',
+  'opencode',
+  'OpenCode Zen',
+  'OpenCode Go',
+  'Gemini',
+  'Flash',
+  'Pro',
+  'retryPolicy',
+  'cordis',
+  'pnpm',
+  'npm',
+  'localhost',
+]
+
 const VOICE_PROMPT = [
   'Transcribe this audio verbatim.',
   'Return only the transcript: no preamble, no translation, no summary, no quotation marks.',
   'Keep the speaker’s own language, including mixed languages in one sentence.',
   'Spell technical terms, identifiers, filenames, and product names exactly as spoken, in Latin script.',
+  `Prefer these spellings when a sound matches one of them, keeping their capitalization: ${VOICE_VOCABULARY.join(', ')}.`,
+  'Do not expand an identifier into ordinary words, and do not hyphenate a word that was spoken as one.',
   'If a stretch is inaudible, write [inaudible] rather than guessing.',
   'If there is no speech at all, return an empty string.',
 ].join(' ')
@@ -561,6 +586,19 @@ function rotatableStatus(status) {
 }
 
 /**
+ * Whether a status is the model being briefly unavailable rather than anything
+ * about this key or this request. Rotating on these would burn the whole pool
+ * on a condition no key can fix; waiting is what actually helps. Observed in
+ * practice as a 503 "experiencing high demand" on a valid key.
+ */
+function transientStatus(status) {
+  return status === 500 || status === 502 || status === 503 || status === 504
+}
+
+const VOICE_TRANSIENT_RETRIES = 2
+const VOICE_RETRY_BASE_MS = 800
+
+/**
  * Transcribe one recording through the saved key pool. Rotation is deliberately
  * narrow — auth, quota, rate limit — because rotating on a genuine request
  * error would burn every key on the same broken request and report the last
@@ -582,31 +620,39 @@ async function transcribeVoice(bytes, mimeType, signal) {
   })
   let lastError
   for (const key of keys) {
-    let res
-    try {
-      res = await fetch(`${VOICE_ENDPOINT}/${VOICE_MODEL}:generateContent?key=${encodeURIComponent(key)}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body,
-        signal,
-      })
-    } catch (error) {
-      // The request never reached Google: a proxy or offline machine, not a
-      // key problem, so trying the rest of the pool cannot help.
-      throw new Error(`Could not reach Gemini: ${error?.message ?? error}`)
-    }
-    if (!res.ok) {
+    let rotate = false
+    for (let attempt = 0; attempt <= VOICE_TRANSIENT_RETRIES && !rotate; attempt += 1) {
+      let res
+      try {
+        res = await fetch(`${VOICE_ENDPOINT}/${VOICE_MODEL}:generateContent?key=${encodeURIComponent(key)}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body,
+          signal,
+        })
+      } catch (error) {
+        // The request never reached Google: a proxy or offline machine, not a
+        // key problem, so trying the rest of the pool cannot help.
+        throw new Error(`Could not reach Gemini: ${error?.message ?? error}`)
+      }
+      if (res.ok) {
+        const json = await res.json().catch(() => ({}))
+        const text = (json?.candidates?.[0]?.content?.parts ?? [])
+          .map((part) => part?.text ?? '')
+          .join('')
+          .trim()
+        return { text, keyFingerprint: keyFingerprint(key) }
+      }
       const detail = (await res.text().catch(() => '')).slice(0, 200)
       lastError = new Error(`Gemini returned ${res.status} for key ${keyFingerprint(key)}: ${detail}`)
-      if (rotatableStatus(res.status)) continue
-      throw lastError
+      if (rotatableStatus(res.status)) {
+        rotate = true
+      } else if (transientStatus(res.status) && attempt < VOICE_TRANSIENT_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, VOICE_RETRY_BASE_MS * 2 ** attempt))
+      } else {
+        throw lastError
+      }
     }
-    const json = await res.json().catch(() => ({}))
-    const text = (json?.candidates?.[0]?.content?.parts ?? [])
-      .map((part) => part?.text ?? '')
-      .join('')
-      .trim()
-    return { text, keyFingerprint: keyFingerprint(key) }
   }
   throw lastError ?? new Error('Every saved Gemini key was rejected')
 }
