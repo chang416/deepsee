@@ -125,22 +125,29 @@ Invocation guard denied this read: active model "gemini-3.1-pro" matches guards.
 
 dsh profile 装到的是旧版 deepsee。`dsh.bundle` 声明从 3.9.0 起才存在，而 pnpm v11 的发布冷静期机制（`minimumReleaseAge`，隔离刚发布的版本，pnpm 11.21 上实测窗口为 10 天）在所有较新版本都在窗口内时，会静默回退到更旧的版本。那个旧版本没有 bundle 声明，dsh 于是正确地把它当作普通依赖，一个工具都不会出现。
 
-解法：把版本写死。pnpm 只在解析版本范围时应用冷静期，显式版本或 dist-tag 会跳过它（[pnpm#9989](https://github.com/pnpm/pnpm/issues/9989)，pnpm 11.21 上实测），安装命令带 `@latest` 就是这个原因：
+同一个冷静期还有一种更安静的症状：deepsee 已经装好之后，刚发布几天内的新版本仍被隔离，于是 `add ...@latest` 只是把磁盘上already有的那个版本重装一遍，并且照样报成功。不要相信命令的回显，永远确认真正装到的是什么：
 
 ```sh
-npx -y @deepseek-ai/dsh plugin --profile <name> add @chang416/deepsee@latest
+npx -y @deepseek-ai/dsh plugin --profile <name> list
 ```
 
-dsh 的 reconcile 会注意到新版本上的 bundle 声明并激活它，随后重启 dsh。用 `npx -y @deepseek-ai/dsh plugin --profile <name> list` 验证，显示的版本应该是 3.9.0 或更新。
-
-如果将来的 pnpm 关掉了这条跳过通道，更持久的替代方案是在 `~/.dsh/profiles/<name>/pnpm-workspace.yaml` 里加一条一次性排除（写裸包名，不写 `name@version`，这样以后的新版本也能沿用）：
+解法是在 `~/.dsh/profiles/<name>/pnpm-workspace.yaml` 里加一条一次性排除。dsh 首次安装时会自动写一条，但它绑死了当时装的那个确切版本，只豁免那一个版本，之后发布的一律不管：
 
 ```yaml
 minimumReleaseAgeExclude:
-  - 'deepsee'
+  - '@chang416/deepsee@4.0.0'   # dsh 自动写的：只豁免 4.0.0
 ```
 
-然后执行 `npx -y @deepseek-ai/dsh plugin --profile <name> update deepsee`。两种方式的代价都摆在明面上：显式 `@latest`（或这条排除）让 deepsee 退出 pnpm 的供应链冷静期，新版本会立即装上。
+把它改成裸包名，以后的新版本才能一起沿用：
+
+```yaml
+minimumReleaseAgeExclude:
+  - '@chang416/deepsee'
+```
+
+然后执行 `npx -y @deepseek-ai/dsh plugin --profile <name> add @chang416/deepsee@latest` 并重启 dsh，它的 reconcile 会激活新版本上的 bundle 声明。
+
+显式 `@latest` 不能替代这条排除。[pnpm#9989](https://github.com/pnpm/pnpm/issues/9989) 读起来像是 dist-tag 会绕过冷静期，但在 pnpm 11.21 上并不会：4.0.1 发布几分钟后用 `@latest` 安装，解析到的是 4.0.0——正是那条绑死版本的排除已经放行的旧版本。这条排除的代价也摆在明面上：它让 deepsee 退出 pnpm 的供应链冷静期，新版本会立即装上。
 
 ## fetch failed 或连接失败
 

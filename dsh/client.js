@@ -13,8 +13,12 @@
 // with a factory returning cordis-plugin exports), so no build step and no
 // imports from dsh client packages — the same zero-dependency stance as the
 // host half.
+// The id must be the package name: the host serves this bundle as
+// /plugins/<package>/client.js and refuses it if the module it registers is
+// named anything else ("loaded without registering ..."). The bin name
+// ('deepsee') looks right here and fails the whole plugin tree in the browser.
 window.__ModuleLoader__.load({
-  id: 'deepsee',
+  id: '@chang416/deepsee',
   factory: () => {
     var module = { exports: {} }
     var exports = module.exports
