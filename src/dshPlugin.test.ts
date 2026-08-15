@@ -18,6 +18,7 @@ describe('dsh plugin bundle', () => {
         const pkg = JSON.parse(
             fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'),
         ) as {
+            name?: string;
             dsh?: { bundle?: { patch?: string } };
             exports?: Record<string, string>;
             files?: string[];
@@ -28,8 +29,84 @@ describe('dsh plugin bundle', () => {
         expect(pkg.files).toContain('dsh');
         expect(pkg.files).toContain('cordis.patch.yml');
         expect(fs.existsSync(path.join(__dirname, '..', 'dsh', 'visual-check.js'))).toBe(true);
+        // The cordis loader imports this `name` as a bare specifier with the
+        // profile directory as its baseUrl, so it only resolves when it is the
+        // published package name. Asserting it against pkg.name rather than a
+        // literal is the point: the bin name ('deepsee') reads plausibly here
+        // and does not resolve, and a literal assertion pins the wrong value
+        // instead of catching it.
         const patch = fs.readFileSync(path.join(__dirname, '..', 'cordis.patch.yml'), 'utf-8');
-        expect(patch).toContain("name: 'deepsee'");
+        expect(patch).toContain(`name: '${pkg.name}'`);
+    });
+});
+
+describe('dsh plugin tool schemas', () => {
+    type ToolDefinition = {
+        name?: string;
+        parameters?: unknown;
+        output?: { schema?: unknown };
+    };
+
+    /**
+     * Register every tool the plugin exposes, including the delegation tool
+     * that only mounts once the optional `subagents` service appears.
+     */
+    async function registeredTools(): Promise<ToolDefinition[]> {
+        // @ts-expect-error untyped on purpose (plain JS plugin)
+        const plugin = (await import('../dsh/index.js')) as {
+            apply: (ctx: unknown, config?: Record<string, unknown>) => void;
+        };
+        const tools: ToolDefinition[] = [];
+        const register = (definition: ToolDefinition) => {
+            tools.push(definition);
+        };
+        const ctx = {
+            tools: { register },
+            on: () => {},
+            emit: () => {},
+            // Scoped inject: run the callback only for the service under test,
+            // exactly as cordis mounts it when that service appears.
+            inject: (deps: string[], run: (scope: unknown) => void) => {
+                if (deps.includes('subagents')) run({ tools: { register } });
+            },
+        };
+        plugin.apply(ctx as never, { visionProvider: false, pasteToPath: false });
+        return tools;
+    }
+
+    /** Every place a JSON Schema may legally carry `required`. */
+    function badRequiredPaths(node: unknown, at = '$'): string[] {
+        if (Array.isArray(node))
+            return node.flatMap((item, i) => badRequiredPaths(item, `${at}[${i}]`));
+        if (node === null || typeof node !== 'object') return [];
+        const found: string[] = [];
+        for (const [key, value] of Object.entries(node)) {
+            // JSON Schema spells this as an array of property names on the
+            // enclosing object. A boolean beside a property's own `type` is the
+            // sibling-language mistake dsh rejects at registration time.
+            if (key === 'required' && !Array.isArray(value)) found.push(`${at}.required`);
+            else found.push(...badRequiredPaths(value, `${at}.${key}`));
+        }
+        return found;
+    }
+
+    it('declares no per-property required, which dsh rejects at registration', async () => {
+        // Regression: deepsee_delegate shipped `required: true` on each output
+        // property. dsh threw JsonSchemaError, the plugin logged "delegation
+        // skipped" and left routing.ready false, so DeepSee Auto and Customize
+        // never appeared in the model selector at all.
+        const offenders = (await registeredTools()).flatMap((tool) => [
+            ...badRequiredPaths(tool.parameters, `${tool.name}.parameters`),
+            ...badRequiredPaths(tool.output?.schema, `${tool.name}.output.schema`),
+        ]);
+        expect(offenders).toEqual([]);
+    });
+
+    it('requires every field of the delegation result', async () => {
+        const delegate = (await registeredTools()).find((tool) => tool.name === 'deepsee_delegate');
+        expect(delegate).toBeDefined();
+        const schema = delegate?.output?.schema as { required?: string[] } | undefined;
+        expect(schema?.required).toEqual(['lane', 'provider', 'model', 'output']);
     });
 });
 
