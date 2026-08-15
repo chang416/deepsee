@@ -1,12 +1,13 @@
 // The CLI assembly (arg parsing, validation branches, exit codes) only exists in
-// the built bundle, since main.ts parses argv on import. These tests build once,
-// then drive the real binary as a subprocess and assert on exit code and stderr.
-import { execFileSync, spawnSync } from 'child_process';
+// the built bundle, since main.ts parses argv on import. The run's global setup
+// builds it once; these tests drive the real binary as a subprocess and assert
+// on exit code and stderr.
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cli = path.join(root, 'dist', 'main.js');
@@ -38,12 +39,9 @@ function run(args: string[], env: Record<string, string> = {}) {
     return { code: res.status, stdout: res.stdout, stderr: res.stderr };
 }
 
-beforeAll(() => {
-    // Always rebuild so the assembly under test is the current source, not a
-    // stale dist left over from a previous run. shell:true so Windows resolves
-    // `pnpm` to `pnpm.cmd` through PATHEXT; execFile alone would only try pnpm.exe.
-    execFileSync('pnpm', ['build'], { cwd: root, stdio: 'ignore', shell: true });
-}, 120_000);
+// The rebuild that keeps this suite honest about current source now runs once
+// for the whole run, in scripts/build-once.mjs, because doing it here raced
+// scripts/package-bin.test.mjs against a dist that was still being written.
 
 describe('analyze argument validation', () => {
     it('exits non-zero when the required --input is missing', () => {
