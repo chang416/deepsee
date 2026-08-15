@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.1.0 - 2026-08-15
+
+- **Attach a file or photo from the composer's "+" menu.** dsh accepts images by paste and by dropping them on the page, and has no file picker at all; nothing could attach a PDF, a CSV, or a log. DeepSee now contributes an `attach` entry to the host's own command menu, so picking a file uploads it to a private 0600 file and drops the path into the composer — the form both a text-only model and the agent's filesystem tools can act on, and the only way to get one, since a browser never discloses where a picked file really lives. Images keep going through the magic-byte-checked paste route; everything else uses a new attachment route with its own size ceiling and a sanitized basename.
+- **Pin which route runs the Flash and Pro lanes.** A machine holding several DeepSeek subscriptions (official, OpenCode Zen free, OpenCode Go) previously used whichever the discovery order reached first. DeepSee Settings now lists every live DeepSeek route and lets each lane pick one, so Flash can spend the free quota while Pro spends the paid one. A pin is a preference rather than a lock: an unreachable route falls back to the rest of the chain instead of failing the subtask, and the delegate tool's own output names the provider that actually ran, so a fallback is never silent.
+- **A vision read now says how long it took and which engine spent it.** The host surface shows only a spinner while the bridge runs, which makes a slow free engine indistinguishable from a hang. Both the evidence block and the failure block now carry the elapsed time, and the evidence block names the provider.
+
 ## 4.0.2 - 2026-08-15
 
 - **Fixed: the web UI reported "Failed to load plugins" even though the server started cleanly.** The browser half registered itself as `deepsee`, the executable's name, while the host serves it as `/plugins/@chang416/deepsee/client.js` and rejects a bundle that registers under any other name. The whole plugin tree failed in the browser while dsh's own startup output stayed clean, so a server-side check could not see it. This is the same name confusion as the loader entry in 4.0.1, on the half that 4.0.1 did not cover; the bundle test now asserts both names against `package.json`.

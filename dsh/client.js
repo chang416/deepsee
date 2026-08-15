@@ -250,6 +250,53 @@ window.__ModuleLoader__.load({
           clearWrap.append(clearKeys, document.createTextNode('Remove all saved Gemini keys'))
           panel.append(keyLabel, keyHelp, keys, clearWrap)
 
+          // Which live route backs each lane. Everything here comes from the
+          // host's own discovery, so a machine holding several DeepSeek
+          // subscriptions (official, OpenCode Zen free, OpenCode Go) can send
+          // Flash to one and Pro to another instead of taking whichever the
+          // discovery order happened to reach first.
+          var laneTitle = element('h3', 'Which route runs each lane')
+          laneTitle.style.cssText = 'font-size:16px;margin:28px 0 6px'
+          var laneHelp = element(
+            'p',
+            'Auto picks the first live DeepSeek route it finds. Pin a lane to spend a specific subscription — a pinned route is preferred, and DeepSee falls back to the others only if it cannot be reached.',
+          )
+          laneHelp.style.cssText = 'margin:0 0 12px;color:#9fb0ca;font-size:13px;line-height:1.5'
+          panel.append(laneTitle, laneHelp)
+          var routes = Array.isArray(settings.routes) ? settings.routes : []
+          var laneGrid = element('div')
+          laneGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px'
+          var laneSelects = {}
+          ;[
+            { lane: 'flash', label: 'Flash lane', provider: settings.flashProvider, model: settings.flashModel },
+            { lane: 'pro', label: 'Pro lane', provider: settings.proProvider, model: settings.proModel },
+          ].forEach((entry) => {
+            var select = element('select')
+            select.style.cssText =
+              'border:1px solid #314361;border-radius:10px;background:#080e1a;color:#edf4ff;padding:9px 10px;outline:none;max-width:100%'
+            var auto = element('option', 'Auto — first live route')
+            auto.value = ''
+            select.append(auto)
+            routes.forEach((route, index) => {
+              var option = element('option', route.label || `${route.model} · ${route.provider}`)
+              option.value = String(index)
+              select.append(option)
+            })
+            var pinned = routes.findIndex((route) => route.provider === entry.provider && route.model === entry.model)
+            select.value = entry.provider && pinned >= 0 ? String(pinned) : ''
+            laneSelects[entry.lane] = select
+            laneGrid.append(field(entry.label, select))
+          })
+          panel.append(laneGrid)
+          if (routes.length === 0) {
+            var noRoutes = element(
+              'p',
+              'No DeepSeek route is live yet, so there is nothing to pin. Sign in to a provider and reopen this panel.',
+            )
+            noRoutes.style.cssText = 'margin:8px 0 0;color:#c8a45a;font-size:12px'
+            panel.append(noRoutes)
+          }
+
           var routeTitle = element('h3', 'Customize routing')
           routeTitle.style.cssText = 'font-size:16px;margin:28px 0 6px'
           var routeHelp = element(
@@ -388,8 +435,16 @@ window.__ModuleLoader__.load({
             categories.forEach((category) => {
               assignments[category] = selects[category].value
             })
+            var lanes = {}
+            ;['flash', 'pro'].forEach((lane) => {
+              var picked = laneSelects[lane].value
+              // '' clears the pin; the host reads that as "back to discovery
+              // order" rather than as a malformed choice.
+              lanes[lane] = picked === '' ? '' : routes[Number(picked)]
+            })
             var payload = {
               assignments,
+              lanes,
               visualCheck: {
                 enabled: visualEnabled.input.checked,
                 milestones: visualMilestones.input.checked,
@@ -451,11 +506,106 @@ window.__ModuleLoader__.load({
       document.body.append(settingsButton)
     }
 
+    // The composer textarea, for inserting a path when focus has moved to a
+    // popup and document.activeElement is no longer the input. The composer is
+    // the only textarea the conversation surface renders.
+    function composerInput() {
+      var active = document.activeElement
+      if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) return active
+      var boxes = document.querySelectorAll('textarea')
+      return boxes.length ? boxes[boxes.length - 1] : null
+    }
+
+    /**
+     * Upload one picked file and drop its on-disk path into the composer.
+     * Images go to the paste route, which the host already understands and
+     * which magic-byte checks them; everything else goes to the file route.
+     * A path is what both a text-only model and the agent's filesystem tools
+     * can actually act on — the browser never reveals where a picked file
+     * really lives, so the bytes have to make the trip.
+     */
+    function uploadPicked(file, imagesOnly) {
+      var url = imagesOnly ? '/deepsee/paste' : `/deepsee/file?name=${encodeURIComponent(file.name || '')}`
+      return file.arrayBuffer().then((buffer) =>
+        fetch(url, { method: 'POST', body: buffer }).then((res) =>
+          res
+            .json()
+            .catch(() => ({}))
+            .then((body) => {
+              if (!res.ok) throw new Error(body.error || `upload failed (${res.status})`)
+              return body.path
+            }),
+        ),
+      )
+    }
+
+    function pickAndUpload(imagesOnly) {
+      var input = document.createElement('input')
+      input.type = 'file'
+      input.multiple = true
+      if (imagesOnly) input.accept = 'image/*'
+      input.style.cssText = 'position:fixed;left:-9999px;width:1px;height:1px'
+      document.body.append(input)
+      input.addEventListener('change', () => {
+        var files = Array.prototype.slice.call(input.files || [])
+        input.remove()
+        if (!files.length) return
+        // Sequential, so several picks cannot interleave their inserts into
+        // the composer and produce paths spliced through each other.
+        files
+          .reduce(
+            (chain, file) =>
+              chain.then(() =>
+                uploadPicked(file, imagesOnly).then(
+                  (path) => insertText(composerInput(), `${path}\n`),
+                  (error) => insertText(composerInput(), `[deepsee: ${file.name} not attached — ${error.message}]\n`),
+                ),
+              ),
+            Promise.resolve(),
+          )
+          .catch(() => {})
+      })
+      // Synchronous inside the menu's own click gesture: browsers refuse a
+      // file dialog opened after an await.
+      input.click()
+    }
+
+    function registerUploadCommand(scope) {
+      return scope.commandUi.register({
+        name: 'attach',
+        description: 'Attach a file or photo from this computer',
+        available: () => true,
+        ui: {
+          kind: 'popupSelect',
+          options: () =>
+            Promise.resolve([
+              { id: 'image', label: 'Photo or image…', detail: 'PNG, JPEG, WebP, GIF, HEIC' },
+              { id: 'file', label: 'Any file…', detail: 'PDF, CSV, source — anything the agent should read' },
+            ]),
+          onSelect: (option) => {
+            pickAndUpload(option.id === 'image')
+          },
+        },
+      })
+    }
+
     function apply(ctx) {
       document.addEventListener('paste', onPaste, true)
       document.addEventListener('focusin', onFocusIn, true)
       document.addEventListener('click', onClick, true)
       installSettingsEntry()
+      // commandUi is the host's own slash-menu registry, which is what the
+      // composer's "+" opens. Scoped inject so a profile without that service
+      // simply never gets the entry, rather than failing the plugin.
+      if (typeof ctx.inject === 'function') {
+        ctx.inject(['commandUi'], (scope) => {
+          try {
+            registerUploadCommand(scope)
+          } catch (error) {
+            console.error(`[deepsee] attach command not registered: ${error}`)
+          }
+        })
+      }
       // cordis effect: unregister on plugin disposal (HMR, profile reload).
       if (typeof ctx.effect === 'function') {
         ctx.effect(

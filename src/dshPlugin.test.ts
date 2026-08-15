@@ -949,10 +949,46 @@ describe('dsh paste-to-path host route', () => {
         );
         expect(b.out.code).toBe(400);
         // Disabling paste-to-path leaves the independent DeepSee settings
-        // control plane available for keys and Auto/Customize routing.
+        // control plane available for keys and Auto/Customize routing, and
+        // the attachment route, which is a separate switch.
         expect((await routeOf({ pasteToPath: false })).map((route) => route.path)).toEqual([
+            '/deepsee/file',
             '/deepsee/settings',
         ]);
+        expect((await routeOf({ fileUpload: false })).map((route) => route.path)).toEqual([
+            '/deepsee/paste',
+            '/deepsee/settings',
+        ]);
+    });
+
+    it('writes an uploaded file privately under a sanitized name', async () => {
+        const routes = await routeOf();
+        const file = routes.find((route) => route.path === '/deepsee/file');
+        expect(file).toBeDefined();
+        const ok = fakeRes();
+        // A hostile name: directory traversal plus characters a path parser
+        // or shell could reinterpret. Only a safe basename may survive.
+        await file?.handler(
+            fakeReq(
+                'POST',
+                Buffer.from('col1,col2\n1,2\n'),
+                '/deepsee/file?name=..%2F..%2Fevil%20%3B.csv',
+            ) as never,
+            ok.res as never,
+        );
+        expect(ok.out.code).toBe(200);
+        const written = JSON.parse(ok.out.body as string).path as string;
+        expect(path.basename(written)).toBe('evil-.csv');
+        expect(fs.readFileSync(written, 'utf-8')).toBe('col1,col2\n1,2\n');
+        if (process.platform !== 'win32') {
+            expect(fs.statSync(written).mode & 0o777).toBe(0o600);
+        }
+        fs.rmSync(path.dirname(written), { recursive: true, force: true });
+        // Unlike paste, this route takes any bytes: refusing an empty body is
+        // the only content rule, since the point is to materialize a path.
+        const empty = fakeRes();
+        await file?.handler(fakeReq('POST', Buffer.alloc(0)) as never, empty.res as never);
+        expect(empty.out.code).toBe(400);
     });
 
     it('sniffs to the CLI table: near-miss magic bytes are refused, real brands pass', async () => {

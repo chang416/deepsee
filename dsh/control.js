@@ -72,6 +72,13 @@ export function normalizeControlSettings(raw = {}) {
     maxParallel,
     flashModel: String(raw?.routing?.models?.flash ?? 'deepseek-v4-flash'),
     proModel: String(raw?.routing?.models?.pro ?? 'deepseek-v4-pro'),
+    // Which live route each lane prefers. Empty means "whatever the discovery
+    // order finds first", the behavior before this was configurable. A pin is
+    // a preference, not a lock: an unreachable route falls back to the rest of
+    // the chain rather than failing the subtask, and the delegate tool's own
+    // output names the provider that actually ran, so a fallback is visible.
+    flashProvider: String(raw?.routing?.providers?.flash ?? ''),
+    proProvider: String(raw?.routing?.providers?.pro ?? ''),
     visualCheck: {
       enabled: visual.enabled !== false,
       milestones: visual.milestones !== false,
@@ -135,6 +142,33 @@ export async function updateControlFile(update, path = configPath()) {
       throw new Error('maxParallel must be an integer from 1 to 6')
     }
     raw.routing.customize.maxParallel = update.maxParallel
+  }
+  if (update.lanes !== undefined) {
+    if (!update.lanes || typeof update.lanes !== 'object' || Array.isArray(update.lanes)) {
+      throw new Error('lanes must be an object')
+    }
+    raw.routing.providers ??= {}
+    raw.routing.models ??= {}
+    for (const name of ['flash', 'pro']) {
+      if (!Object.hasOwn(update.lanes, name)) continue
+      const choice = update.lanes[name]
+      // '' clears the pin and restores discovery order. Anything else must
+      // name both halves: a provider alone cannot resolve to a model, and a
+      // model alone is what the previous, unpinnable behavior already did.
+      if (choice === '' || choice === null) {
+        delete raw.routing.providers[name]
+        delete raw.routing.models[name]
+        continue
+      }
+      if (!choice || typeof choice !== 'object' || Array.isArray(choice)) {
+        throw new Error(`lanes.${name} must be an object or an empty string`)
+      }
+      const provider = String(choice.provider ?? '').trim()
+      const model = String(choice.model ?? '').trim()
+      if (!provider || !model) throw new Error(`lanes.${name} needs both provider and model`)
+      raw.routing.providers[name] = provider
+      raw.routing.models[name] = model
+    }
   }
   if (update.visualCheck !== undefined) {
     if (!update.visualCheck || typeof update.visualCheck !== 'object' || Array.isArray(update.visualCheck)) {
