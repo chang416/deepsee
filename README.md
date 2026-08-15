@@ -129,12 +129,6 @@ Two more sources of vision need zero new keys, each behind one explicit consent 
 
 Two knobs: `deepsee config set provider <name>` states a preference (the chain still backs it up), `-p <name>` pins exactly one with no fallback. Machines behind a proxy set `HTTPS_PROXY` or `deepsee config set proxy <url>` and the API providers route through it. Details: the [CLI manual](docs/cli.md) for defaults and flags, [Configuration](skills/deepsee/references/configure.md) for every key, and [Security](docs/security.md) for who fetches what on remote URLs.
 
-## The product in one frame
-
-![DeepSee brand and product system: vision plus model routing](https://raw.githubusercontent.com/chang416/deepsee/main/assets/brand-system.png)
-
-The workflow is deliberately explicit: paste a UI reference, let Auto route implementation and review across Flash and Pro, have Gemini inspect the rendered result, then deliver only after the final visual check passes.
-
 ## Documentation
 
 | Doc | Read it when |

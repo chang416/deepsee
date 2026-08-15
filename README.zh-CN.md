@@ -129,12 +129,6 @@ deepsee config set openai.model   qwen3-vl-plus
 
 两个旋钮：`deepsee config set provider <name>` 表达偏好（链继续兜底），`-p <name>` 钉死单个不回退。代理环境设 `HTTPS_PROXY` 或 `deepsee config set proxy <url>`，API provider 自动走代理。细节见 [CLI 手册](docs/cli.zh-CN.md)（默认模型与参数）、[配置手册](skills/deepsee/references/configure.zh-CN.md)（全部配置键）、[安全说明](docs/security.zh-CN.md)（远程 URL 由谁抓取）。
 
-## 一张图看懂产品
-
-![DeepSee 品牌与产品系统：视觉加模型路由](https://raw.githubusercontent.com/chang416/deepsee/main/assets/brand-system.png)
-
-工作流刻意保持清楚：贴入 UI 参考图，Auto 把实现与审查分给 Flash／Pro，Gemini 检查实际渲染结果，最终视觉检查通过后才交付。
-
 ## 文档
 
 | 文档                                                     | 适用场景                                   |
