@@ -938,13 +938,19 @@ async function resolveDelegationTarget(ctx, routing, currentUpstream, lane, sett
     const model = modelForLane(models, lane, configured)
     if (model) return { provider, model: model.id }
   }
+  // The instruction rides the error itself: this string is what the
+  // coordinator reads at the moment it is deciding what to do next, and
+  // without it the tempting move is to finish the subtask on its own route.
+  const stop =
+    ' Stop and report this to the user. Do not complete this subtask yourself and do not start the remaining ones.'
   if (locked) {
     throw new Error(
       `DeepSee ${lane} lane is locked to ${pinned}/${configured}, which is not answering. ` +
-        'Unlock the lane in DeepSee Settings to allow another route, or bring that one back.',
+        'Unlock the lane in DeepSee Settings to allow another route, or bring that one back.' +
+        stop,
     )
   }
-  throw new Error(`No live DeepSeek V4 ${lane === 'pro' ? 'Pro' : 'Flash'} route is available`)
+  throw new Error(`No live DeepSeek V4 ${lane === 'pro' ? 'Pro' : 'Flash'} route is available.${stop}`)
 }
 
 function registerDelegationTool(ctx, routing) {
@@ -1054,6 +1060,18 @@ function coordinatorInstructions(mode, settings) {
     'Before editing, split the request into bounded subtasks. Delegate each substantive subtask with deepsee_delegate.',
     'Send independent deepsee_delegate calls in the same response so the harness may run them in parallel. Do not delegate trivial chat.',
     'After results return, integrate them, resolve conflicts, and perform a final coherent review before answering.',
+    // The failure this exists to prevent: a lane went down, the coordinator
+    // decided finishing the job itself beat blocking delivery, and every
+    // remaining subtask ran on the coordinator's own route. That silently
+    // spends the expensive model the routing policy existed to avoid, and the
+    // user only discovers it from the bill. Stopping is the cheaper mistake.
+    'If a deepsee_delegate call fails, STOP. Do not write the delegated subtask yourself, do not retry it on your own route, and do not continue with the remaining subtasks. Report which lane failed, the exact error, what is already finished, and what the user can change (unlock the lane, pick another route, or wait for quota). Finishing the work on your own route is never the right call: the user chose this routing to control which model spends their budget, and quietly overriding that choice costs them money they did not agree to spend.',
+    // Interrupting is normal, so the state an interrupt leaves behind has to
+    // be readable rather than reconstructed by guesswork.
+    'Keep a written progress record from the start: create a todo covering the planned subtasks before delegating, and update it the moment each one lands. A paused or interrupted run must be resumable by reading that record, not by re-deriving what happened from the filesystem.',
+    // A single multi-minute write is atomic: an interrupt in minute five
+    // discards all five minutes, because the tool call never executed.
+    'Never emit a long file in one write call. Write a skeleton first, then fill it in section by section, so every completed section is a checkpoint an interrupt cannot take away.',
     visual.enabled
       ? [
           'Visual self-check is REQUIRED for any task that creates or changes user-facing UI, styling, layout, charts, rendered documents, or visual states.',
