@@ -248,6 +248,11 @@ describe('DeepSee native dsh router', () => {
         );
         expect(tools.has('deepsee_visual_check')).toBe(true);
 
+        // Free routes answer a burst with 429 and clear it seconds later, so
+        // these routes carry more retries than dsh's paid-route default of 2.
+        // Returning undefined here silently accepted that default.
+        expect(adapter?.providerRetryPolicy()).toEqual({ mode: 'normal', maxRetries: 5 });
+
         const delegate = tools.get('deepsee_delegate') as {
             execute: (args: unknown, exec: unknown) => Promise<Record<string, unknown>>;
         };

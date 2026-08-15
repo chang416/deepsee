@@ -232,6 +232,22 @@ const PASTE_MAX_BYTES = 25 * 1024 * 1024
 // service, not just a slow request.
 const FILE_MAX_BYTES = 64 * 1024 * 1024
 
+/** Retries after the first attempt on a DeepSee-wrapped route. */
+const DEFAULT_RETRY_ATTEMPTS = 5
+
+/**
+ * How many times a wrapped route may retry a transient failure. Free tiers
+ * answer a burst with 429 and clear it seconds later, so the useful number is
+ * higher than dsh's paid-route default of 2. Bounded on both sides: zero
+ * disables retries, and a ceiling keeps a misconfiguration from turning a
+ * dead route into a long stall.
+ */
+function retryAttempts(config) {
+  const raw = config?.retryAttempts
+  if (!Number.isSafeInteger(raw) || raw < 0) return DEFAULT_RETRY_ATTEMPTS
+  return Math.min(10, raw)
+}
+
 /**
  * A filename safe to join onto a directory we control. The browser hands us
  * whatever the OS reported, which on a hostile page is attacker-chosen: only
@@ -1122,7 +1138,13 @@ function registerVisionProvider(ctx, config, routing) {
           return { id: provider, name: displayName }
         },
         providerRetryPolicy() {
-          return undefined
+          // dsh defaults to two retries, which suits a paid route with an
+          // occasional blip. These are the routes DeepSee exists to favor —
+          // free tiers whose 429 is routine and short-lived — so returning
+          // undefined here spent the budget long before the limit cleared.
+          // Bounded backoff means the extra attempts cost seconds of waiting,
+          // not a runaway loop, and a genuinely dead route still ends.
+          return { mode: 'normal', maxRetries: retryAttempts(config) }
         },
         async listModels(_provider, signal) {
           try {
