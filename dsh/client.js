@@ -615,6 +615,106 @@ window.__ModuleLoader__.load({
       input.click()
     }
 
+    // --- dictation -------------------------------------------------------
+    var micButton = null
+    var recorder = null
+    var recorded = []
+
+    function setMicState(state) {
+      if (!micButton) return
+      var look = {
+        idle: { bg: '#111b2f', border: '#35507a', label: '🎤', title: 'Dictate (click to start)' },
+        recording: { bg: '#7f1d2e', border: '#b23a4c', label: '■', title: 'Recording — click to stop' },
+        working: { bg: '#1b2a44', border: '#35507a', label: '…', title: 'Transcribing…' },
+      }[state]
+      micButton.textContent = look.label
+      micButton.title = look.title
+      micButton.setAttribute('aria-label', look.title)
+      micButton.style.background = look.bg
+      micButton.style.borderColor = look.border
+      micButton.disabled = state === 'working'
+    }
+
+    function stopTracks(stream) {
+      ;(stream?.getTracks() ?? []).forEach((track) => {
+        track.stop()
+      })
+    }
+
+    function sendRecording(blob) {
+      setMicState('working')
+      var mime = (blob.type || 'audio/webm').split(';')[0]
+      blob
+        .arrayBuffer()
+        .then((buffer) =>
+          fetch(`/deepsee/voice?mime=${encodeURIComponent(mime)}`, { method: 'POST', body: buffer }).then((res) =>
+            res
+              .json()
+              .catch(() => ({}))
+              .then((body) => {
+                if (!res.ok) throw new Error(body.error || `dictation failed (${res.status})`)
+                return body.text || ''
+              }),
+          ),
+        )
+        .then((text) => {
+          // An empty transcript means silence, not failure. Saying so beats
+          // inserting nothing and leaving the user wondering.
+          if (text.trim()) insertText(composerInput(), text.trim().endsWith(' ') ? text.trim() : `${text.trim()} `)
+          else window.alert('DeepSee heard no speech in that recording.')
+        })
+        .catch((error) => window.alert(`DeepSee dictation failed: ${error.message}`))
+        .finally(() => setMicState('idle'))
+    }
+
+    function toggleDictation() {
+      if (recorder && recorder.state === 'recording') {
+        recorder.stop()
+        return
+      }
+      if (!navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder !== 'function') {
+        window.alert('This browser cannot record audio, so DeepSee dictation is unavailable here.')
+        return
+      }
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          recorded = []
+          recorder = new window.MediaRecorder(stream)
+          recorder.addEventListener('dataavailable', (event) => {
+            if (event.data?.size) recorded.push(event.data)
+          })
+          recorder.addEventListener('stop', () => {
+            // Release the microphone before the network call, so the browser's
+            // recording indicator reflects reality rather than staying lit for
+            // the length of a transcription.
+            stopTracks(stream)
+            recorder = null
+            var blob = new window.Blob(recorded, { type: recorded[0]?.type || 'audio/webm' })
+            recorded = []
+            if (blob.size) sendRecording(blob)
+            else setMicState('idle')
+          })
+          recorder.start()
+          setMicState('recording')
+        })
+        .catch((error) => {
+          setMicState('idle')
+          window.alert(`DeepSee could not use the microphone: ${error.message}`)
+        })
+    }
+
+    function installMicEntry() {
+      if (!document.createElement || !document.body) return
+      micButton = element('button')
+      micButton.type = 'button'
+      micButton.style.cssText =
+        'position:fixed;right:18px;bottom:62px;z-index:2147483000;width:38px;height:38px;border:1px solid #35507a;border-radius:999px;background:#111b2f;color:#dceaff;font:600 15px Inter,ui-sans-serif,system-ui;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center'
+      micButton.addEventListener('click', toggleDictation)
+      setMicState('idle')
+      document.body.append(micButton)
+    }
+
     function registerUploadCommand(scope) {
       return scope.commandUi.register({
         name: 'attach',
@@ -639,6 +739,7 @@ window.__ModuleLoader__.load({
       document.addEventListener('focusin', onFocusIn, true)
       document.addEventListener('click', onClick, true)
       installSettingsEntry()
+      installMicEntry()
       // commandUi is the host's own slash-menu registry, which is what the
       // composer's "+" opens. Scoped inject so a profile without that service
       // simply never gets the entry, rather than failing the plugin.
@@ -659,6 +760,10 @@ window.__ModuleLoader__.load({
             document.removeEventListener('focusin', onFocusIn, true)
             document.removeEventListener('click', onClick, true)
             settingsButton?.remove()
+            // A live recorder outlives the plugin unless it is stopped here,
+            // and the browser keeps showing the microphone indicator for it.
+            if (recorder && recorder.state === 'recording') recorder.stop()
+            micButton?.remove()
           },
           'deepsee: paste-to-path listener',
         )
