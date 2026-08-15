@@ -959,12 +959,55 @@ describe('dsh paste-to-path host route', () => {
         // the attachment route, which is a separate switch.
         expect((await routeOf({ pasteToPath: false })).map((route) => route.path)).toEqual([
             '/deepsee/file',
+            '/deepsee/voice',
             '/deepsee/settings',
         ]);
         expect((await routeOf({ fileUpload: false })).map((route) => route.path)).toEqual([
             '/deepsee/paste',
+            '/deepsee/voice',
             '/deepsee/settings',
         ]);
+        expect((await routeOf({ voiceInput: false })).map((route) => route.path)).toEqual([
+            '/deepsee/paste',
+            '/deepsee/file',
+            '/deepsee/settings',
+        ]);
+    });
+
+    it('refuses dictation without a key rather than sending audio nowhere', async () => {
+        const routes = await routeOf();
+        const voice = routes.find((route) => route.path === '/deepsee/voice');
+        expect(voice).toBeDefined();
+        const wrongMethod = fakeRes();
+        await voice?.handler(fakeReq('GET', Buffer.alloc(0)) as never, wrongMethod.res as never);
+        expect(wrongMethod.out.code).toBe(405);
+        const empty = fakeRes();
+        await voice?.handler(
+            fakeReq('POST', Buffer.alloc(0), '/deepsee/voice') as never,
+            empty.res as never,
+        );
+        expect(empty.out.code).toBe(400);
+        // With no saved key the route must fail with something a user can act
+        // on, not ship the recording off to an endpoint that will reject it.
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-voice-'));
+        const oldConfig = process.env.DEEPSEE_CONFIG_PATH;
+        const oldEnvKey = process.env.GEMINI_API_KEY;
+        process.env.DEEPSEE_CONFIG_PATH = path.join(dir, 'config.json');
+        delete process.env.GEMINI_API_KEY;
+        try {
+            const noKey = fakeRes();
+            await voice?.handler(
+                fakeReq('POST', Buffer.from([1, 2, 3]), '/deepsee/voice?mime=audio/webm') as never,
+                noKey.res as never,
+            );
+            expect(noKey.out.code).toBe(500);
+            expect(String(noKey.out.body)).toContain('No Gemini key is saved');
+        } finally {
+            if (oldConfig === undefined) delete process.env.DEEPSEE_CONFIG_PATH;
+            else process.env.DEEPSEE_CONFIG_PATH = oldConfig;
+            if (oldEnvKey !== undefined) process.env.GEMINI_API_KEY = oldEnvKey;
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     it('writes an uploaded file privately under a sanitized name', async () => {

@@ -18,7 +18,9 @@ import {
   AUTO_MODEL_ID,
   CUSTOMIZE_MODEL_ID,
   chooseLane,
+  keyFingerprint,
   publicControlSettings,
+  readControlFile,
   TASK_CATEGORIES,
   updateControlFile,
 } from './control.js'
@@ -70,6 +72,7 @@ export function apply(ctx, config = {}) {
         // takeover verdicts.
         if (config.pasteToPath !== false) registerPasteRoute(scope, ctx)
         if (config.fileUpload !== false) registerFileRoute(scope)
+        if (config.voiceInput !== false) registerVoiceRoute(scope)
         registerSettingsRoute(scope, ctx, routing)
       } catch (error) {
         console.error(`[deepsee] web controls skipped: ${error}`)
@@ -505,6 +508,165 @@ function registerFileRoute(ctx) {
         await writeFile(file, Buffer.concat(chunks), { mode: 0o600 })
         res.writeHead(200, { 'content-type': 'application/json' })
         res.end(JSON.stringify({ path: file }))
+      } catch (error) {
+        res.writeHead(500, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ error: String(error?.message ?? error) }))
+      }
+    },
+  })
+}
+
+const VOICE_MAX_BYTES = 25 * 1024 * 1024
+const VOICE_MODEL = 'gemini-flash-latest'
+const VOICE_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models'
+// Dictation, not summarization. The failure mode worth designing against is a
+// model that "helpfully" tidies speech into prose: the user is dictating a
+// prompt, so an invented word is indistinguishable from something they said.
+// Technical terms are called out because this is exactly where OS-level
+// dictation fails — a sentence mixing Chinese with `retryPolicy` or `opencode`
+// comes back mangled, and there is no way to notice from the result alone.
+const VOICE_PROMPT = [
+  'Transcribe this audio verbatim.',
+  'Return only the transcript: no preamble, no translation, no summary, no quotation marks.',
+  'Keep the speaker’s own language, including mixed languages in one sentence.',
+  'Spell technical terms, identifiers, filenames, and product names exactly as spoken, in Latin script.',
+  'If a stretch is inaudible, write [inaudible] rather than guessing.',
+  'If there is no speech at all, return an empty string.',
+].join(' ')
+
+/**
+ * Saved Gemini keys, most recently added first, plus the environment key.
+ * Read straight from the config file rather than through publicControlSettings,
+ * which exists precisely to never hand key material back.
+ */
+async function geminiKeys() {
+  const raw = await readControlFile()
+  const provider = raw?.providers?.['gemini-api'] ?? {}
+  const saved = Array.isArray(provider.apiKeys) ? provider.apiKeys : []
+  const candidates = [...saved, provider.apiKey, process.env.GEMINI_API_KEY]
+  const seen = new Set()
+  const keys = []
+  for (const candidate of candidates) {
+    const key = String(candidate ?? '').trim()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    keys.push(key)
+  }
+  return keys
+}
+
+/** Whether a Gemini HTTP status means "try the next key" rather than "give up". */
+function rotatableStatus(status) {
+  return status === 401 || status === 403 || status === 429
+}
+
+/**
+ * Transcribe one recording through the saved key pool. Rotation is deliberately
+ * narrow — auth, quota, rate limit — because rotating on a genuine request
+ * error would burn every key on the same broken request and report the last
+ * key's failure as if the pool were exhausted.
+ */
+async function transcribeVoice(bytes, mimeType, signal) {
+  const keys = await geminiKeys()
+  if (keys.length === 0) {
+    throw new Error('No Gemini key is saved. Open DeepSee Settings and add a free key from https://aistudio.google.com')
+  }
+  const body = JSON.stringify({
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: VOICE_PROMPT }, { inlineData: { mimeType, data: bytes.toString('base64') } }],
+      },
+    ],
+    generationConfig: { temperature: 0 },
+  })
+  let lastError
+  for (const key of keys) {
+    let res
+    try {
+      res = await fetch(`${VOICE_ENDPOINT}/${VOICE_MODEL}:generateContent?key=${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body,
+        signal,
+      })
+    } catch (error) {
+      // The request never reached Google: a proxy or offline machine, not a
+      // key problem, so trying the rest of the pool cannot help.
+      throw new Error(`Could not reach Gemini: ${error?.message ?? error}`)
+    }
+    if (!res.ok) {
+      const detail = (await res.text().catch(() => '')).slice(0, 200)
+      lastError = new Error(`Gemini returned ${res.status} for key ${keyFingerprint(key)}: ${detail}`)
+      if (rotatableStatus(res.status)) continue
+      throw lastError
+    }
+    const json = await res.json().catch(() => ({}))
+    const text = (json?.candidates?.[0]?.content?.parts ?? [])
+      .map((part) => part?.text ?? '')
+      .join('')
+      .trim()
+    return { text, keyFingerprint: keyFingerprint(key) }
+  }
+  throw lastError ?? new Error('Every saved Gemini key was rejected')
+}
+
+/**
+ * The dictation route. POST /deepsee/voice?mime=<recorder mime>: audio bytes
+ * in, `{ text }` out. The bytes are never written to disk — a recording of the
+ * user's voice has no reason to outlive the request that transcribes it.
+ */
+function registerVoiceRoute(ctx) {
+  ctx.webServer.register({
+    name: 'deepsee-voice',
+    kind: 'exact',
+    path: '/deepsee/voice',
+    handler: async (req, res) => {
+      if (req.method !== 'POST') {
+        res.writeHead(405, { allow: 'POST' }).end()
+        return
+      }
+      try {
+        const origin = req.headers?.origin
+        if (origin) {
+          let sameOrigin = false
+          try {
+            sameOrigin = new URL(origin).host === req.headers?.host
+          } catch {
+            sameOrigin = false
+          }
+          if (!sameOrigin) {
+            res.writeHead(403, { 'content-type': 'application/json' })
+            res.end(JSON.stringify({ error: 'cross-origin dictation is not allowed' }))
+            return
+          }
+        }
+        const chunks = []
+        let total = 0
+        for await (const chunk of req) {
+          total += chunk.length
+          if (total > VOICE_MAX_BYTES) {
+            res.writeHead(413, { 'content-type': 'application/json' })
+            res.end(JSON.stringify({ error: `recording over the ${VOICE_MAX_BYTES}-byte limit` }))
+            req.destroy()
+            return
+          }
+          chunks.push(chunk)
+        }
+        if (total === 0) {
+          res.writeHead(400, { 'content-type': 'application/json' })
+          res.end(JSON.stringify({ error: 'empty recording' }))
+          return
+        }
+        const declared = new URL(req.url, 'http://localhost').searchParams.get('mime') ?? ''
+        // Only the container the browser actually produces; an arbitrary
+        // string here would be forwarded to Google as fact.
+        const mimeType = /^audio\/(webm|ogg|mp4|mpeg|wav|aac|flac)(;.*)?$/i.test(declared)
+          ? declared.split(';')[0].toLowerCase()
+          : 'audio/webm'
+        const result = await transcribeVoice(Buffer.concat(chunks), mimeType)
+        res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+        res.end(JSON.stringify(result))
       } catch (error) {
         res.writeHead(500, { 'content-type': 'application/json' })
         res.end(JSON.stringify({ error: String(error?.message ?? error) }))
