@@ -15,6 +15,76 @@ const {
     updateControlFile,
 } = control;
 
+describe('DeepSee lane routing', () => {
+    async function withConfig(run: (file: string) => Promise<void>) {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-lanes-'));
+        try {
+            await run(path.join(dir, 'config.json'));
+        } finally {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
+    }
+
+    it('stores a lane choice with its fallback mode, and clears both', async () => {
+        await withConfig(async (file) => {
+            const locked = await updateControlFile(
+                {
+                    lanes: {
+                        flash: {
+                            provider: 'opencode',
+                            model: 'deepseek-v4-flash-free',
+                            lock: true,
+                        },
+                    },
+                },
+                file,
+            );
+            expect(locked.flashProvider).toBe('opencode');
+            expect(locked.flashModel).toBe('deepseek-v4-flash-free');
+            expect(locked.flashLock).toBe(true);
+            // A Flash write must not reach into the Pro lane.
+            expect(locked.proProvider).toBe('');
+            expect(locked.proLock).toBe(false);
+
+            // Re-saving the same route unlocked has to actually unlock it: a
+            // stale lock would keep failing the lane the user just freed.
+            const preferred = await updateControlFile(
+                {
+                    lanes: {
+                        flash: {
+                            provider: 'opencode',
+                            model: 'deepseek-v4-flash-free',
+                            lock: false,
+                        },
+                    },
+                },
+                file,
+            );
+            expect(preferred.flashProvider).toBe('opencode');
+            expect(preferred.flashLock).toBe(false);
+
+            const cleared = await updateControlFile({ lanes: { flash: '' } }, file);
+            expect(cleared.flashProvider).toBe('');
+            expect(cleared.flashModel).toBe('deepseek-v4-flash');
+            expect(cleared.flashLock).toBe(false);
+        });
+    });
+
+    it('refuses a half-named route and a non-boolean lock', async () => {
+        await withConfig(async (file) => {
+            await expect(
+                updateControlFile({ lanes: { pro: { provider: 'opencode' } } }, file),
+            ).rejects.toThrow(/needs both provider and model/);
+            await expect(
+                updateControlFile(
+                    { lanes: { pro: { provider: 'a', model: 'b', lock: 'yes' } } },
+                    file,
+                ),
+            ).rejects.toThrow(/lock must be boolean/);
+        });
+    });
+});
+
 describe('DeepSee control settings', () => {
     it('normalizes a complete safe Auto policy and never returns key material', () => {
         const settings = normalizeControlSettings({

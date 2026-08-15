@@ -72,13 +72,18 @@ export function normalizeControlSettings(raw = {}) {
     maxParallel,
     flashModel: String(raw?.routing?.models?.flash ?? 'deepseek-v4-flash'),
     proModel: String(raw?.routing?.models?.pro ?? 'deepseek-v4-pro'),
-    // Which live route each lane prefers. Empty means "whatever the discovery
-    // order finds first", the behavior before this was configurable. A pin is
-    // a preference, not a lock: an unreachable route falls back to the rest of
-    // the chain rather than failing the subtask, and the delegate tool's own
-    // output names the provider that actually ran, so a fallback is visible.
+    // Which live route each lane uses. Empty means "whatever the discovery
+    // order finds first", the behavior before this was configurable.
     flashProvider: String(raw?.routing?.providers?.flash ?? ''),
     proProvider: String(raw?.routing?.providers?.pro ?? ''),
+    // How hard that choice is. Locked means the lane runs on that route or
+    // not at all: the point of choosing a free route is that nothing may
+    // quietly promote the work to a paid one, so a lock fails loudly instead
+    // of spending money the user did not agree to spend. Unlocked keeps the
+    // rest of the chain behind the choice, which is the right default when
+    // availability matters more than which subscription pays.
+    flashLock: raw?.routing?.locks?.flash === true,
+    proLock: raw?.routing?.locks?.pro === true,
     visualCheck: {
       enabled: visual.enabled !== false,
       milestones: visual.milestones !== false,
@@ -149,15 +154,17 @@ export async function updateControlFile(update, path = configPath()) {
     }
     raw.routing.providers ??= {}
     raw.routing.models ??= {}
+    raw.routing.locks ??= {}
     for (const name of ['flash', 'pro']) {
       if (!Object.hasOwn(update.lanes, name)) continue
       const choice = update.lanes[name]
-      // '' clears the pin and restores discovery order. Anything else must
+      // '' clears the choice and restores discovery order. Anything else must
       // name both halves: a provider alone cannot resolve to a model, and a
       // model alone is what the previous, unpinnable behavior already did.
       if (choice === '' || choice === null) {
         delete raw.routing.providers[name]
         delete raw.routing.models[name]
+        delete raw.routing.locks[name]
         continue
       }
       if (!choice || typeof choice !== 'object' || Array.isArray(choice)) {
@@ -166,8 +173,13 @@ export async function updateControlFile(update, path = configPath()) {
       const provider = String(choice.provider ?? '').trim()
       const model = String(choice.model ?? '').trim()
       if (!provider || !model) throw new Error(`lanes.${name} needs both provider and model`)
+      if (Object.hasOwn(choice, 'lock') && typeof choice.lock !== 'boolean') {
+        throw new Error(`lanes.${name}.lock must be boolean`)
+      }
       raw.routing.providers[name] = provider
       raw.routing.models[name] = model
+      if (choice.lock === true) raw.routing.locks[name] = true
+      else delete raw.routing.locks[name]
     }
   }
   if (update.visualCheck !== undefined) {
