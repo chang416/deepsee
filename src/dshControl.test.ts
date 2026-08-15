@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { Readable } from 'node:stream';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // The shipped dsh control plane is dependency-free JavaScript by design.
 // @ts-expect-error no declaration file is published for the internal module
@@ -164,6 +164,24 @@ describe('DeepSee control settings', () => {
 });
 
 describe('DeepSee native dsh router', () => {
+    // Routing reads the real settings file unless one is pointed at, so a
+    // developer who pinned a lane in DeepSee Settings turned their own
+    // preference into a failing assertion here. The lanes under test are the
+    // defaults, so the isolation belongs to the suite, not to the reader's
+    // machine.
+    let restoreConfig: string | undefined;
+    let configDir: string | undefined;
+    beforeEach(() => {
+        restoreConfig = process.env.DEEPSEE_CONFIG_PATH;
+        configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepsee-router-'));
+        process.env.DEEPSEE_CONFIG_PATH = path.join(configDir, 'config.json');
+    });
+    afterEach(() => {
+        if (restoreConfig === undefined) delete process.env.DEEPSEE_CONFIG_PATH;
+        else process.env.DEEPSEE_CONFIG_PATH = restoreConfig;
+        if (configDir) fs.rmSync(configDir, { recursive: true, force: true });
+    });
+
     it('publishes Auto and Customize and routes OpenCode free Flash versus Go/Pro-capable lanes', async () => {
         // @ts-expect-error shipped plugin is plain JavaScript
         const plugin = (await import('../dsh/index.js')) as {
@@ -242,6 +260,13 @@ describe('DeepSee native dsh router', () => {
             model: 'deepseek-v4-flash-free',
         });
         expect(String(streamed[0].system)).toContain('multi-model coordinator');
+        // A lane going down once made the coordinator finish the job on its
+        // own route, which spent the expensive model the routing existed to
+        // avoid. These three rules are the fix and must reach the model.
+        expect(String(streamed[0].system)).toContain('If a deepsee_delegate call fails, STOP');
+        expect(String(streamed[0].system)).toContain('Do not write the delegated subtask yourself');
+        expect(String(streamed[0].system)).toContain('create a todo covering the planned subtasks');
+        expect(String(streamed[0].system)).toContain('Never emit a long file in one write call');
         expect(String(streamed[0].system)).toContain('deepsee_visual_check');
         expect(String(streamed[0].system)).toContain(
             'Never claim completion without a PASS verdict',
