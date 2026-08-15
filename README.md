@@ -27,6 +27,8 @@ DeepSee turns DeepSeek Harness into a multimodal, multi-model coding workspace. 
 npx -y @deepseek-ai/dsh plugin --profile web add @chang416/deepsee@latest
 ```
 
+Then confirm what landed with `dsh plugin --profile web list`. pnpm v11 quarantines releases published in the last few days and can install an older version instead while still reporting success; [troubleshooting](docs/troubleshooting.md#dsh-says-declares-no-dshbundle--installed-as-a-plain-dependency) fixes that in one line.
+
 Open **DeepSee Settings** to add free Gemini keys (one per line), choose a default preview URL, and customize which work belongs to Flash or Pro.
 
 <p align="center">

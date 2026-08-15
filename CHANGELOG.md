@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.0.2 - 2026-08-15
+
+- **Fixed: the web UI reported "Failed to load plugins" even though the server started cleanly.** The browser half registered itself as `deepsee`, the executable's name, while the host serves it as `/plugins/@chang416/deepsee/client.js` and rejects a bundle that registers under any other name. The whole plugin tree failed in the browser while dsh's own startup output stayed clean, so a server-side check could not see it. This is the same name confusion as the loader entry in 4.0.1, on the half that 4.0.1 did not cover; the bundle test now asserts both names against `package.json`.
+- **Documented: a fresh release can install as an older version, silently.** pnpm v11 quarantines recently published versions, and dsh's first install writes a `minimumReleaseAgeExclude` entry pinned to the exact version it installed, so nothing published afterwards is exempt. `add @chang416/deepsee@latest` then reinstalls what is already on disk and reports success. Troubleshooting now gives the bare-package-name exclusion that covers future releases, and corrects the previous claim that an explicit dist-tag bypasses the gate — on pnpm 11.21 it does not.
+
 ## 4.0.1 - 2026-08-15
 
 - **Fixed: the documented dsh install produced a profile that would not boot.** `cordis.patch.yml` named the plugin `deepsee`, the executable's name rather than the package's. The cordis loader imports that value as a bare specifier against the profile directory, where the package installs as `@chang416/deepsee`, so `dsh web` aborted with `Cannot find package 'deepsee'` and the whole profile failed to load. The patch now names the package, and the bundle test asserts it against `package.json` instead of a literal so the two cannot drift apart again.

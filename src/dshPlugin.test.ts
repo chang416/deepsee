@@ -37,6 +37,14 @@ describe('dsh plugin bundle', () => {
         // instead of catching it.
         const patch = fs.readFileSync(path.join(__dirname, '..', 'cordis.patch.yml'), 'utf-8');
         expect(patch).toContain(`name: '${pkg.name}'`);
+        // The browser half carries the same rule and fails in a place the
+        // server log never shows: the host serves this bundle as
+        // /plugins/<package>/client.js and rejects it when the module it
+        // registers is named anything else, taking the whole plugin tree down
+        // in the UI while dsh's own startup output stays clean.
+        expect(pkg.exports?.['./client']).toBe('./dsh/client.js');
+        const client = fs.readFileSync(path.join(__dirname, '..', 'dsh', 'client.js'), 'utf-8');
+        expect(client).toContain(`id: '${pkg.name}'`);
     });
 });
 

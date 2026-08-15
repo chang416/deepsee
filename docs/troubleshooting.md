@@ -129,31 +129,41 @@ quarantining recently published versions, with a 10-day window measured on pnpm 
 recent one is inside the window. That old version has no bundle declaration,
 so dsh correctly treats it as a plain dependency and none of the tools appear.
 
-The fix: name the version explicitly. pnpm applies the age gate when resolving
-a range, but an explicit version or dist-tag skips it ([pnpm#9989](https://github.com/pnpm/pnpm/issues/9989), verified on pnpm 11.21), which is why the install
-command carries `@latest`:
+The same gate has a quieter symptom once deepsee is already installed: a release
+published in the last few days stays quarantined, so `add ...@latest` reinstalls
+the version already on disk and still reports success. Always check what landed
+rather than trusting the command:
 
 ```sh
-npx -y @deepseek-ai/dsh plugin --profile <name> add @chang416/deepsee@latest
+npx -y @deepseek-ai/dsh plugin --profile <name> list
 ```
 
-dsh's reconcile notices the bundle declaration on the new version and
-activates it; restart dsh afterwards. Verify with
-`npx -y @deepseek-ai/dsh plugin --profile <name> list` — the version shown
-should be 3.9.0 or newer.
-
-If a future pnpm closes that skip, the durable alternative is a one-time
-exclusion in `~/.dsh/profiles/<name>/pnpm-workspace.yaml` — the bare package
-name, not `name@version`, so it survives future releases:
+The fix is a one-time exclusion in `~/.dsh/profiles/<name>/pnpm-workspace.yaml`.
+dsh writes one automatically on the first install, but it pins the exact version
+it installed, which exempts that version and nothing published after it:
 
 ```yaml
 minimumReleaseAgeExclude:
-  - 'deepsee'
+  - '@chang416/deepsee@4.0.0'   # what dsh writes: exempts 4.0.0 only
 ```
 
-then `npx -y @deepseek-ai/dsh plugin --profile <name> update deepsee`.
-The trade-off is honest either way: an explicit `@latest` (or the exclusion)
-opts deepsee out of pnpm's supply-chain cooling-off window, so new releases
+Replace it with the bare package name, which survives future releases:
+
+```yaml
+minimumReleaseAgeExclude:
+  - '@chang416/deepsee'
+```
+
+then `npx -y @deepseek-ai/dsh plugin --profile <name> add @chang416/deepsee@latest`
+and restart dsh, whose reconcile activates the bundle declaration on the new
+version.
+
+An explicit `@latest` is not a substitute for the exclusion.
+[pnpm#9989](https://github.com/pnpm/pnpm/issues/9989) reads as though a dist-tag
+bypasses the gate, but on pnpm 11.21 it does not: installing `@latest` minutes
+after 4.0.1 was published resolved to 4.0.0, the older version the pinned
+exclusion had already whitelisted. The trade-off of the exclusion is honest —
+it opts deepsee out of pnpm's supply-chain cooling-off window, so new releases
 install immediately.
 
 ## fetch failed, or could not connect

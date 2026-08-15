@@ -27,6 +27,8 @@ DeepSee 把 DeepSeek Harness 变成一个能看图、能换模型、还能自动
 npx -y @deepseek-ai/dsh plugin --profile web add @chang416/deepsee@latest
 ```
 
+装完用 `dsh plugin --profile web list` 确认真正装到的版本。pnpm v11 会隔离最近几天发布的版本，可能改装一个更旧的版本却照样报成功，[排障文档](docs/troubleshooting.zh-CN.md#dsh-提示-declares-no-dshbundle--installed-as-a-plain-dependency)里有一行解法。
+
 打开 **DeepSee Settings**，一行一把加入免费的 Gemini Key，并设置 Flash／Pro 分工、预览网址与视觉检查次数。
 
 ![DeepSee 如何结合 Gemini 视觉与 DeepSeek 模型路由](https://raw.githubusercontent.com/chang416/deepsee/main/assets/flow.zh.svg)
