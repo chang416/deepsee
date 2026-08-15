@@ -24,7 +24,7 @@ $ErrorActionPreference = 'Stop'
 # package.json version, and the release script rewrites it on every bump.
 $Package = '@chang416/deepsee'
 $Bin = 'deepsee'
-$Pinned = '4.0.1'
+$Pinned = '4.0.2'
 # -------------------------------------------------------------------------------
 
 $NativeNote = 'no native artifact is published for this tool yet; phase A ships npm launch paths only'
